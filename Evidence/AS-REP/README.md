@@ -1,22 +1,22 @@
 # Active Directory Kerberos Threat Validation: AS-REP Roasting & NIDS Detection Pipeline
 
 ## Executive Summary
-This directory contains end-to-end evidence validating internal Active Directory threat detection and network intrusion telemetry across routed virtualized infrastructure. It demonstrates how an unauthenticated attacker on an isolated segment (`192.168.10.0/24`) identifies accounts lacking Kerberos pre-authentication, extracts an encrypted Ticket Granting Ticket (TGT) hash, and generates correlated network alerts within an inline OPNsense Suricata NIDS engine as well as endpoint security audit events on the Domain Controller (`DC01`).
+This directory contains end-to-end evidence validating internal Active Directory threat detection and network intrusion telemetry across routed virtualized infrastructure. It demonstrates how an unauthenticated attacker on an isolated segment (`192.168.10.0/24`) identifies accounts lacking Kerberos pre-authentication, extracts an encrypted Ticket Granting Ticket (TGT) hash, and generates correlated network alerts within an inline OPNsense Suricata NIDS engine as well as endpoint security audit events on the Domain Controller (`DC01`). Additionally, it documents a subsequent Kerberoasting attempt mitigated by native Windows Server 2025 cryptographic hardening.
 
 ---
 
 ## 1. Test Metadata
 * **Target Domain / Realm:** `hybrid.lan` (`HYBRID.LAN`)
-* **Primary Domain Controller:** `DC01` (192.168.20.76) — Windows Server Active Directory / KDC
+* **Primary Domain Controller:** `DC01` (192.168.20.76) — Windows Server 2025 Active Directory / KDC
 * **Attack Host:** Kali Linux (192.168.10.84) — Internal LAN segment (`em1`)
 * **Network Sensor / Firewall:** OPNsense NIDS (Suricata engine bound to `em1` and `em3`)
 * **Target Account:** `asrep_user@hybrid.lan` (`DONT_REQ_PREAUTH` enabled)
-* **Attack Tooling:** Impacket v0.14.0.dev0 (`GetNPUsers`)
+* **Attack Tooling:** Impacket v0.14.0.dev0 (`GetNPUsers`, `GetUserSPNs`)
 * **Detection Signatures:** Emerging Threats Open (Suricata) / Windows Security Audit Log
 
 ---
 
-## 2. Evidence Chain of Custody
+## 2. Phase 1 Evidence Chain of Custody (AS-REP Roasting)
 
 | Step | Source System | Evidence File / Artifact | Key Findings |
 |---|---|---|---|
@@ -60,3 +60,26 @@ Set-ADAccountControl -Identity "asrep_user" -DoesNotRequirePreAuth $false
 
 ### 3. Credential Hygiene
 Where legacy operational constraints strictly require `DONT_REQ_PREAUTH`, enforce 25+ character complex passphrases or migrate the workload to Group Managed Service Accounts (gMSA) to render offline dictionary attacks computationally infeasible.
+
+---
+
+## 5. Phase 2: Kerberoasting & Cryptographic Mitigation
+
+### The Attack Attempt
+Following successful compromise of the `asrep_user` credentials, an authenticated Kerberoasting attack was executed against the `sql_svc` account (SPN: `MSSQLSvc/dc01.hybrid.lan:1433`) using Impacket:
+
+```bash
+impacket-GetUserSPNs hybrid.lan/asrep_user:'Winter2026!' -dc-ip 192.168.20.76 -request > tgs_hash.txt
+```
+
+### Environmental Mitigation (KDC_ERR_ETYPE_NOSUPP)
+The attack was successfully intercepted and dropped by the Active Directory Key Distribution Center (KDC) natively. The execution returned the following Kerberos session error:
+
+```text
+[-] Principal: hybrid.lan\sql_svc - Kerberos SessionError: KDC_ERR_ETYPE_NOSUPP(KDC has no support for encryption type)
+```
+
+### Architectural Root Cause
+Standard Python-based Kerberoasting tooling (such as `GetUserSPNs.py`) hardcodes the `TGS-REQ` to request legacy `etype 23` (RC4-HMAC) service tickets. This is done because RC4 hashes mathematically permit high-speed GPU dictionary attacks via MD4 algorithms (Hashcat mode `13100`), whereas modern AES tickets (Hashcat mode `19700`) are exponentially more resource-intensive to crack.
+
+In this environment, the Windows Server 2025 KDC enforces modern cryptographic standards and aligns with updated security baselines that restrict RC4 negotiation globally. Because Windows Server 2025 restricts implicit RC4 fallback, the KDC explicitly rejects the downgrade attempt, rendering standard legacy cracking vectors obsolete without requiring third-party endpoint intervention.
