@@ -20,10 +20,10 @@ This directory contains end-to-end evidence validating internal Active Directory
 
 | Step | Source System | Evidence File / Artifact | Key Findings |
 |---|---|---|---|
-| **01. Vulnerable Directory State** | `DC01` | [preauth.txt](./preauth.txt) | Executed Active Directory query; verified `DoesNotRequirePreAuth = True` and `userAccountControl = 4194816` (`0x400200`), validating pre-authentication bypass is enabled[cite: 3]. |
-| **02. Unauthenticated TGT Harvesting** | Kali Linux | [as-rep-result.jpg](./as-rep-result.jpg) | Executed `impacket-GetNPUsers` against `hybrid.lan`; extracted valid Kerberos 5 AS-REP ticket blob (`etype 23` RC4-HMAC) for offline dictionary recovery with cracking tooling. |
-| **03. Host Security Audit Ingestion** | `DC01` | [DC01-as-rep-event.txt](./DC01-as-rep-event.txt) | Verified Windows Event ID `4768` logged on `DC01`; recorded ticket request from `::ffff:192.168.10.84` with `Pre-Authentication Type: 0` (no pre-auth) and `Ticket Encryption Type: 0x17`[cite: 2]. |
-| **04. Network Threat Detection (NIDS)** | OPNsense | [asrep_evidence.json](./asrep_evidence.json) | Captured real-time alert in `eve.json`; Suricata flagged traffic with `SID 2019922` (`ET EXPLOIT Possible GoldenPac Priv Esc in-use`) on transit port `88/tcp` without NAT masking[cite: 1]. |
+| **01. Vulnerable Directory State** | `DC01` | [preauth](./preauth.txt) | Executed Active Directory query; verified `DoesNotRequirePreAuth = True` and `userAccountControl = 4194816` (`0x400200`), validating pre-authentication bypass is enabled. |
+| **02. Unauthenticated TGT Harvesting** | Kali Linux | [as-rep-result](./as-rep-result.jpg) | Executed `impacket-GetNPUsers` against `hybrid.lan`; extracted valid Kerberos 5 AS-REP ticket blob (`etype 23` RC4-HMAC) for offline dictionary recovery with cracking tooling. |
+| **03. Host Security Audit Ingestion** | `DC01` | [DC01-as-rep-event](./DC01-as-rep-event.txt) | Verified Windows Event ID `4768` logged on `DC01`; recorded ticket request from `::ffff:192.168.10.84` with `Pre-Authentication Type: 0` (no pre-auth) and `Ticket Encryption Type: 0x17`. |
+| **04. Network Threat Detection (NIDS)** | OPNsense | [asrep_evidence](./asrep_evidence.json) | Captured real-time alert in `eve.json`; Suricata flagged traffic with `SID 2019922` (`ET EXPLOIT Possible GoldenPac Priv Esc in-use`) on transit port `88/tcp` without NAT masking. |
 
 ---
 
@@ -37,8 +37,8 @@ Under RFC 4120, standard Kerberos authentication requires the client to encrypt 
 
 ### Dual-Layer Telemetry Correlation
 Detection is verified simultaneously across host and network layers:
-* **Endpoint Telemetry (`Event ID 4768`):** The Domain Controller Security Event Log records a TGT request where `Pre-Authentication Type` explicitly logs as `0` instead of standard Kerberos pre-auth (`15` or `19`), directly attributable to client IP `192.168.10.84`[cite: 2].
-* **Network NIDS Telemetry (`asrep_evidence.json`):** Suricata intercepts the TCP session across the internal transit bridge (`em1` to `em3`), decoding the Kerberos payload and raising an ET Open high-severity alert (`Category: Attempted Administrator Privilege Gain`) based on anomalous unauthenticated Kerberos formatting[cite: 1].
+* **Endpoint Telemetry (`Event ID 4768`):** The Domain Controller Security Event Log records a TGT request where `Pre-Authentication Type` explicitly logs as `0` instead of standard Kerberos pre-auth (`15` or `19`), directly attributable to client IP `192.168.10.84`.
+* **Network NIDS Telemetry (`asrep_evidence.json`):** Suricata intercepts the TCP session across the internal transit bridge (`em1` to `em3`), decoding the Kerberos payload and raising an ET Open high-severity alert (`Category: Attempted Administrator Privilege Gain`) based on anomalous unauthenticated Kerberos formatting.
 
 ---
 
