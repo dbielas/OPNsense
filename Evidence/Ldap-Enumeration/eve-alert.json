@@ -1,0 +1,22 @@
+{
+  "timestamp": "2026-09-10T22:31:52.698597+0000",
+  "flow_id": 1272562938529864,
+  "in_iface": "em1",
+  "event_type": "alert",
+  "src_ip": "192.168.20.75",
+  "src_port": 636,
+  "dest_ip": "192.168.10.83",
+  "dest_port": 37023,
+  "proto": "TCP",
+  "ip_v": 4,
+  "pkt_src": "wire/pcap",
+  "alert": {
+    "action": "allowed",
+    "gid": 1,
+    "signature_id": 1000099,
+    "rev": 1,
+    "signature": "LDAPS EGRESS HIT",
+    "category": "",
+    "severity": 3
+  }
+}

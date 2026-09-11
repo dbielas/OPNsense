@@ -1,0 +1,21 @@
+# 1. TCP Three-Way Handshake
+22:31:52.671566 IP 192.168.10.83.37023 > 192.168.20.75.636: Flags [S], seq 3161107261, win 64240, options [mss 1460,sackOK,TS val 676401108 ecr 0,nop,wscale 8], length 0
+22:31:52.672242 IP 192.168.20.75.636 > 192.168.10.83.37023: Flags [S.], seq 3849368123, ack 3161107262, win 65535, options [mss 1460,nop,wscale 8,sackOK,TS val 18838884 ecr 676401108], length 0
+22:31:52.672540 IP 192.168.10.83.37023 > 192.168.20.75.636: Flags [.], ack 1, win 251, options [nop,nop,TS val 676401109 ecr 18838884], length 0
+
+# 2. TLS Session Establishment & Encrypted Search Query
+22:31:52.673891 IP 192.168.10.83.37023 > 192.168.20.75.636: Flags [P.], seq 1:518, ack 1, win 251, options [nop,nop,TS val 676401110 ecr 18838884], length 517
+22:31:52.675102 IP 192.168.20.75.636 > 192.168.10.83.37023: Flags [P.], seq 1:2543, ack 518, win 255, options [nop,nop,TS val 18838887 ecr 676401110], length 2542
+22:31:52.697410 IP 192.168.10.83.37023 > 192.168.20.75.636: Flags [P.], seq 518:2801, ack 2543, win 251, options [nop,nop,TS val 676401131 ecr 18838887], length 2283
+
+# 3. High-Rate LDAPS Object Tree Streaming (Saturated 1448-byte Segments)
+22:31:52.698597 IP 192.168.20.75.636 > 192.168.10.83.37023: Flags [.], seq 5734:7182, ack 2801, win 251, options [nop,nop,TS val 18838911 ecr 676401131], length 1448
+22:31:52.698618 IP 192.168.20.75.636 > 192.168.10.83.37023: Flags [.], seq 7182:8630, ack 2801, win 251, options [nop,nop,TS val 18838911 ecr 676401131], length 1448
+22:31:52.698630 IP 192.168.20.75.636 > 192.168.10.83.37023: Flags [.], seq 8630:10078, ack 2801, win 251, options [nop,nop,TS val 18838911 ecr 676401131], length 1448
+22:31:52.698641 IP 192.168.20.75.636 > 192.168.10.83.37023: Flags [.], seq 10078:11526, ack 2801, win 251, options [nop,nop,TS val 18838911 ecr 676401131], length 1448
+22:31:52.698652 IP 192.168.20.75.636 > 192.168.10.83.37023: Flags [.], seq 11526:12974, ack 2801, win 251, options [nop,nop,TS val 18838911 ecr 676401131], length 1448
+22:31:52.698663 IP 192.168.20.75.636 > 192.168.10.83.37023: Flags [.], seq 12974:14422, ack 2801, win 251, options [nop,nop,TS val 18838911 ecr 676401131], length 1448
+
+# 4. Stream Tail / Final Flush
+22:31:53.277016 IP 192.168.20.75.636 > 192.168.10.83.37023: Flags [.], seq 1079555:1081003, ack 18461, win 253, options [nop,nop,TS val 18839490 ecr 676401714], length 1448
+22:31:53.277043 IP 192.168.20.75.636 > 192.168.10.83.37023: Flags [P.], seq 1081003:1082175, ack 18461, win 253, options [nop,nop,TS val 18839490 ecr 676401714], length 1172

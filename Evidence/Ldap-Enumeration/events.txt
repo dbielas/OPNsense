@@ -1,0 +1,113 @@
+TimeCreated : 9/10/2026 10:31:52 PM
+Message     : Internal event: A client issued a search operation with the following options. 
+               
+              Client:
+              192.168.10.83:37023 
+              Starting node:
+              DC=hybrid,DC=lan 
+              Filter:
+               ( &  (objectCategory=CN=Container,CN=Schema,CN=Configuration,DC=hybrid,DC=lan)  (objectClass=container) )  
+              Search scope:
+              subtree 
+              Attribute selection:
+              distinguishedName,name,objectGUID,isCriticalSystemObject,objectClass,objectCategory,description,whenCreated,nTSecurityDescriptor 
+              Server controls:
+              SDflags:0x5; 
+              Visited entries:
+              315 
+              Returned entries:
+              114 
+              Used indexes:
+              idx_objectCategory:315:N; 
+              Pages referenced:
+              4475 
+              Pages read from disk:
+              30 
+              Pages preread from disk:
+              1 
+              Clean pages modified:
+              0 
+              Dirty pages modified:
+              0 
+              Search time (ms):
+              31 
+              Attributes Preventing Optimization:
+              none 
+              User:
+              HYBRID\asrep_user
+
+TimeCreated : 9/10/2026 10:31:52 PM
+Message     : Internal event: A client issued a search operation with the following options. 
+               
+              Client:
+              192.168.10.83:37023 
+              Starting node:
+              DC=hybrid,DC=lan 
+              Filter:
+               (objectClass=group)  
+              Search scope:
+              subtree 
+              Attribute selection:
+              distinguishedName,sAMAccountName,sAMAccountType,objectSid,member,adminCount,description,whenCreated,nTSecurityDescriptor 
+              Server controls:
+              SDflags:0x5; 
+              Visited entries:
+              53 
+              Returned entries:
+              52 
+              Used indexes:
+              idx_objectClass:53:N; 
+              Pages referenced:
+              1353 
+              Pages read from disk:
+              0 
+              Pages preread from disk:
+              0 
+              Clean pages modified:
+              0 
+              Dirty pages modified:
+              0 
+              Search time (ms):
+              0 
+              Attributes Preventing Optimization:
+              none 
+              User:
+              HYBRID\asrep_user
+
+TimeCreated : 9/10/2026 10:31:52 PM
+Message     : Internal event: A client issued a search operation with the following options. 
+               
+              Client:
+              192.168.10.83:37023 
+              Starting node:
+              CN=Schema,CN=Configuration,DC=hybrid,DC=lan 
+              Filter:
+               (objectClass=*)  
+              Search scope:
+              subtree 
+              Attribute selection:
+              name,schemaIDGUID 
+              Server controls:
+               
+              Visited entries:
+              101 
+              Returned entries:
+              100 
+              Used indexes:
+              Ancestors_index:1860:N; 
+              Pages referenced:
+              1596 
+              Pages read from disk:
+              2 
+              Pages preread from disk:
+              0 
+              Clean pages modified:
+              0 
+              Dirty pages modified:
+              0 
+              Search time (ms):
+              0 
+              Attributes Preventing Optimization:
+              none 
+              User:
+              HYBRID\asrep_user
