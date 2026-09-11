@@ -1,18 +1,17 @@
 # Active Directory LDAPS Enumeration & Defense Efficacy Validation
 
 ## Executive Summary
-This directory contains end-to-end evidence validating the detection and forensic analysis of automated Active Directory graph enumeration over encrypted transport (LDAPS, TCP 636) targeting primary domain controller `DC01`[cite: 2]. It evaluates the detection boundary between network behavioral sensors (Suricata NIDS) and host-level directory diagnostic auditing (Windows NTDS Event ID 1644), documenting the cryptographic blinding of network inspection, stateful sensor engine failures, and the operational procedure for endpoint telemetry collection.
+This directory contains end-to-end evidence validating the detection and forensic analysis of automated Active Directory graph enumeration over encrypted transport (LDAPS, TCP 636) targeting primary domain controller `DC01`. It evaluates the detection boundary between network behavioral sensors (Suricata NIDS) and host-level directory diagnostic auditing (Windows NTDS Event ID 1644), documenting the cryptographic blinding of network inspection, stateful sensor engine failures, and the operational procedure for endpoint telemetry collection.
 
 ---
 
 ## 1. Test Metadata
-* **Target Domain Controller:** `DC01.hybrid.lan` (`192.168.20.75`)[cite: 2]
+* **Target Domain Controller:** `DC01.hybrid.lan` (`192.168.20.75`)
 * **Attacker Host:** `kali` (`192.168.10.83`)
 * **Target Directory Port:** TCP 636 (LDAP over TLS/SSL)
 * **Compromised Account Context:** `hybrid.lan\asrep_user`
 * **Network Sensor Platform:** OPNsense / Suricata
 * **Monitored Transit Interface:** `em1`
-* **Evidence Time Alignment (UTC):** `2026-09-10T22:31:52Z` (Reconciled Local MST: `15:31:52`)
 * **Attack Tooling:** NetExec v1.x (`--bloodhound --collection All`)
 
 ---
@@ -24,7 +23,7 @@ This directory contains end-to-end evidence validating the detection and forensi
 | **01. Attack Execution & Ingest** | `kali` (Attacker) | [netexec-enumeration.log](./netexec-enumeration.log) | Executed NetExec enumeration via LDAPS; validated successful authentication as `asrep_user` and dumped 178 KB compressed BloodHound archive `DC01_192.168.20.75_2026-09-10_223152_bloodhound.zip`. |
 | **02. Transit Boundary Wire Telemetry** | `em1` (OPNsense) | [tcpdump-ldaps-burst.pcap](./tcpdump-ldaps-burst.pcap) | Captured raw frame flow across ephemeral socket `37023 -> 636`; confirmed bidirectional TCP handshake, TLS negotiation, and line-rate saturation of consecutive 1448-byte payload segments. |
 | **03. Network Sensor Detection** | Suricata (NIDS) | [eve-alert-1000099.json](./eve-alert-1000099.json) | Triggered Layer-4 signature `sid:1000099` (`LDAPS EGRESS HIT`); confirmed packet match on outbound DC response without relying on corrupted flow timers. |
-| **04. Host Diagnostic Telemetry** | `DC01` (Active Directory) | [events.txt](./events.txt) | Captured Directory Service Event ID 1644 entries; exposed exact LDAP search filters, target attributes (`nTSecurityDescriptor`, `member`, `adminCount`), and calling client socket `192.168.10.83:37023`[cite: 1, 2]. |
+| **04. Host Diagnostic Telemetry** | `DC01` (Active Directory) | [events.txt](./events.txt) | Captured Directory Service Event ID 1644 entries; exposed exact LDAP search filters, target attributes (`nTSecurityDescriptor`, `member`, `adminCount`), and calling client socket `192.168.10.83:37023`. |
 
 ---
 
@@ -87,10 +86,10 @@ Because NetExec operates over an established TLS session on TCP port 636, Deep P
 ```
 
 ### Host-Side NTDS Telemetry (Event ID 1644)
-Because network encryption masks query details, host-side NTDS diagnostics supply essential attribution and filter visibility[cite: 1]:
-* **Group & DACL Enumeration:** Evaluates `(objectClass=group)` while extracting binary security descriptors (`nTSecurityDescriptor`) and group memberships (`member`) to construct privilege escalation attack paths[cite: 1].
-* **System Containers & OU Discovery:** Traverses the tree matching `(objectClass=container)` to locate critical system targets and group policy inheritance points[cite: 1].
-* **Schema Resolution:** Queries `CN=Schema,CN=Configuration,DC=hybrid,DC=lan` to map schema GUIDs back to human-readable names for rights parsing[cite: 1].
+Because network encryption masks query details, host-side NTDS diagnostics supply essential attribution and filter visibility:
+* **Group & DACL Enumeration:** Evaluates `(objectClass=group)` while extracting binary security descriptors (`nTSecurityDescriptor`) and group memberships (`member`) to construct privilege escalation attack paths.
+* **System Containers & OU Discovery:** Traverses the tree matching `(objectClass=container)` to locate critical system targets and group policy inheritance points.
+* **Schema Resolution:** Queries `CN=Schema,CN=Configuration,DC=hybrid,DC=lan` to map schema GUIDs back to human-readable names for rights parsing.
 
 ```text
 TimeCreated : 9/10/2026 10:31:52 PM
@@ -119,7 +118,7 @@ Message     : Internal event: A client issued a search operation with the follow
               User:
               HYBRID\asrep_user
 ```
-[cite: 1]
+
 
 ---
 
