@@ -20,10 +20,10 @@ This directory contains end-to-end evidence validating the detection and forensi
 
 | Step | Source System | Evidence File / Artifact | Key Findings |
 |---|---|---|---|
-| **01. Attack Execution & Ingest** | `kali` (Attacker) | [netexec-enumeration.log](./netexec-enumeration.log) | Executed NetExec enumeration via LDAPS; validated successful authentication as `asrep_user` and dumped 178 KB compressed BloodHound archive `DC01_192.168.20.75_2026-09-10_223152_bloodhound.zip`. |
-| **02. Transit Boundary Wire Telemetry** | `em1` (OPNsense) | [tcpdump-ldaps-burst.pcap](./tcpdump-ldaps-burst.pcap) | Captured raw frame flow across ephemeral socket `37023 -> 636`; confirmed bidirectional TCP handshake, TLS negotiation, and line-rate saturation of consecutive 1448-byte payload segments. |
-| **03. Network Sensor Detection** | Suricata (NIDS) | [eve-alert-1000099.json](./eve-alert-1000099.json) | Triggered Layer-4 signature `sid:1000099` (`LDAPS EGRESS HIT`); confirmed packet match on outbound DC response without relying on corrupted flow timers. |
-| **04. Host Diagnostic Telemetry** | `DC01` (Active Directory) | [events.txt](./events.txt) | Captured Directory Service Event ID 1644 entries; exposed exact LDAP search filters, target attributes (`nTSecurityDescriptor`, `member`, `adminCount`), and calling client socket `192.168.10.83:37023`. |
+| **01. Attack Execution & Ingest** | `kali` (Attacker) | [netexec-enumeration](./netexec-enumeration.jpg) | Executed NetExec enumeration via LDAPS; validated successful authentication as `asrep_user` and dumped 178 KB compressed BloodHound archive `DC01_192.168.20.75_2026-09-10_223152_bloodhound.zip`. |
+| **02. Transit Boundary Wire Telemetry** | `em1` (OPNsense) | [tcpdump-ldaps-burst](./tcpdump.txt) | Captured raw frame flow; confirmed bidirectional TCP handshake, TLS negotiation, and line-rate saturation of consecutive 1448-byte payload segments. |
+| **03. Network Sensor Detection** | Suricata (NIDS) | [eve-alert](./eve-alert.json) | Triggered Layer-4 signature `sid:1000099` (`LDAPS EGRESS HIT`); confirmed packet match on outbound DC response without relying on corrupted flow timers. |
+| **04. Host Diagnostic Telemetry** | `DC01` (Active Directory) | [LDAP-events](./events.txt) | Captured Directory Service Event ID 1644 entries; exposed exact LDAP search filters, target attributes (`nTSecurityDescriptor`, `member`, `adminCount`), and calling client socket `192.168.10.83:37023`. |
 
 ---
 
