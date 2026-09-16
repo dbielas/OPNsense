@@ -1,4 +1,4 @@
-# Evidence 04: Active Directory Domain Dominance via DCSync & DRSUAPI Abuse
+# Active Directory Domain Dominance via DCSync & DRSUAPI Abuse
 
 ## Executive Summary
 This directory contains end-to-end forensic evidence and network telemetry validating the execution, detection, and operational impact of an Active Directory **DCSync** attack. The vulnerability stems from configuration drift: during a prior Microsoft Entra ID Connect outage, an administrator temporarily assigned Directory Replication Extended Rights to a Tier-2 support group (`IT-Identity-Operations`) to restore Password Hash Synchronization (PHS). Because this temporary access was never revoked, the attacker was able to leverage these over-permissioned rights on the domain root (`DC=hybrid,DC=lan`) via a compromised member account (`asrep_user`) to remotely extract password hashes—specifically targeting the `krbtgt` account—without code execution on Domain Controller `DC01`. The chain demonstrates correlation between host-level Directory Service Access auditing (Event ID 4662) and network-layer MSRPC boundary telemetry captured by Suricata NIDS.
