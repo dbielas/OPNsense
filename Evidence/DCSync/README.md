@@ -1,0 +1,158 @@
+# Evidence 04: Active Directory Domain Dominance via DCSync & DRSUAPI Abuse
+
+## Executive Summary
+This directory contains end-to-end forensic evidence and network telemetry validating the execution, detection, and operational impact of an Active Directory **DCSync** attack. Following initial enumeration, the attack leverages over-permissioned replication extended rights on the domain root object (`DC=hybrid,DC=lan`) to remotely extract password hashes—specifically targeting the `krbtgt` account—without code execution on Domain Controller `DC01`. The chain demonstrates correlation between host-level Directory Service Access auditing (Event ID 4662) and network-layer MSRPC boundary telemetry captured by Suricata NIDS.
+
+---
+
+## 1. Test Metadata
+* **Attacking Node:** `kali` (`192.168.10.83`) — Client / Security Testing Subnet
+* **Target Domain Controller:** `DC01` (`192.168.20.75`) — Windows Server Domain Controller
+* **NIDS Sensor Interface:** `opnsense` (`em1`, `em3`) — Boundary Gateway
+* **Compromised Identity:** `HYBRID\asrep_user` (`S-1-5-21-1980889319-3065036259-2951414589-1120`)
+* **Vulnerable Group:** `CN=IT-Identity-Operations,CN=Users,DC=hybrid,DC=lan`
+* **Exploited Extended Right:** `DS-Replication-Get-Changes-All` (`{1131f6ad-9c07-11d1-f79f-00c04fc2dcd2}`)
+* **Exploitation Framework:** Impacket `secretsdump.py` (v0.12.0)
+* **NIDS Signature ID:** `1000100` (Rev 6)
+
+---
+
+## 2. Evidence Chain of Custody
+
+| Step | Source System | Evidence File / Artifact | Key Findings |
+|---|---|---|---|
+| **01. Attacker Execution** | `kali` (`192.168.10.83`) | `secretsdump-krbtgt.txt` | Executed `impacket-secretsdump`; extracted `krbtgt` RID 502 NTLM hash (`b308e018...`) via DRSUAPI without interactive logon. |
+| **02. Host Audit Telemetry** | `DC01` (`192.168.20.75`) | `DCSync-event.txt` | Captured Security Event ID 4662; confirmed `asrep_user` exercised `Control Access` (`0x100`) against GUID `{1131f6ad...}` on `domainDNS`[cite: 4]. |
+| **03. RPC Port Resolution** | `opnsense` (`em1`, `em3`) | `eve.json` | Suricata alert SID `1000100` triggered on `192.168.10.83:41676 -> 192.168.20.75:135` querying DRSUAPI interface[cite: 2, 3]. |
+| **04. Replication Data Stream** | `opnsense` (`em1`, `em3`) | `eve.json` | Suricata alert SID `1000100` triggered on `192.168.10.83:58956 -> 192.168.20.75:49683`; captured `6,860 bytes` outbound replication payload[cite: 2, 3]. |
+
+---
+
+## 3. Deep-Dive Analysis: MSRPC DRSUAPI Mechanism & Host Telemetry
+
+### The Entra ID Connect Remediation Root Cause
+In hybrid identity environments, Password Hash Synchronization (PHS) mandates delegating `DS-Replication-Get-Changes` and `DS-Replication-Get-Changes-All` to the directory connector identity. During an operational troubleshooting sequence to unblock replication errors, these rights were assigned to the broad security group `IT-Identity-Operations`. The delegation was left unrevoked, exposing high-privilege directory synchronization capabilities to any member identity, including `asrep_user`.
+
+### Attack Execution (Impacket `secretsdump.py`)
+
+```bash
+impacket-secretsdump hybrid.lan/asrep_user:'Winter2026!'@192.168.20.75 -just-dc-user krbtgt
+
+```
+
+**Extracted Credential Material:**
+
+```text
+hybrid.lan\krbtgt:502:aad3b435b51404eeaad3b435b51404ee:b308e01869e9a2631526487e411b0213:::
+
+```
+
+### Windows Security Event ID 4662 Breakdown
+
+* **Event ID:** 4662 (Directory Service Access)
+
+
+* **Time Created:** `9/16/2026 2:56:42 PM MST`
+
+* **Subject Account:** `HYBRID\asrep_user` (Logon ID `0xA9D937`)
+
+
+* **Access Mask:** `0x100` (Control Access / Extended Right)
+
+
+* **Properties Flag:** `{1131f6ad-9c07-11d1-f79f-00c04fc2dcd2}` (`DS-Replication-Get-Changes-All`)
+
+
+
+Because `DS-Replication-Get-Changes-All` overrides directory attribute filtering to stream password hashes and Kerberos keys across the wire, invoking this GUID from a standard user security context is an authoritative host-level indicator of DCSync.
+
+---
+
+## 4. Network Telemetry & NIDS Detection Architecture
+
+### Two-Stage MSRPC Flow Analysis
+
+Replication requests across the boundary negotiate an Endpoint Mapper resolution followed by dynamic RPC data streaming:
+
+1. **Endpoint Resolution (TCP 135):** The client binds to EPMapper on TCP 135 to resolve the dynamic listening port registered to the DRSUAPI UUID.
+
+
+2. **Replication Stream (High Port TCP 49683):** The client establishes a direct TCP session to `49683`, executing `DsGetNCChanges`. The asymmetric byte distribution (`2,208 bytes` sent vs. `6,860 bytes` returned) reflects secret retrieval from the directory.
+
+
+
+### Correlated Suricata Alert Payload (`eve.json`)
+
+```json
+{
+  "timestamp": "2026-09-16T21:56:45.055858+0000",
+  "flow_id": 1636706804181913,
+  "in_iface": "em1",
+  "event_type": "alert",
+  "src_ip": "192.168.10.83",
+  "src_port": 58956,
+  "dest_ip": "192.168.20.75",
+  "dest_port": 49683,
+  "proto": "TCP",
+  "alert": {
+    "action": "allowed",
+    "gid": 1,
+    "signature_id": 1000100,
+    "rev": 6,
+    "signature": "ATTACK-CHAIN - Client Subnet DRSUAPI RPC Bind Detected (DCSync)",
+    "category": "Attempted Administrator Privilege Gain",
+    "severity": 1
+  },
+  "app_proto": "dcerpc",
+  "direction": "to_server",
+  "flow": {
+    "pkts_toserver": 13,
+    "pkts_toclient": 11,
+    "bytes_toserver": 2208,
+    "bytes_toclient": 6860,
+    "start": "2026-09-16T21:56:45.053395+0000"
+  }
+}
+
+```
+
+---
+
+## 5. Defensive Remediation & Hardening Protocol
+
+### 1. Active Directory DACL Remediations
+
+Purge all non-standard replication access control entries on the root of the domain:
+
+```powershell
+$domainDN = (Get-ADDomain).DistinguishedName
+$domainPath = "AD:\$domainDN"
+$acl = Get-Acl -Path$domainPath
+
+# Target IT-Identity-Operations
+$targetGroup = "IT-Identity-Operations"
+$rulesToRemove = $acl.Access \vert{} Where-Object {$_.IdentityReference -match $targetGroup -and$_.ActiveDirectoryRights -match "ExtendedRight" 
+}
+
+foreach ($rule in$rulesToRemove) {
+    $acl.RemoveAccessRule($rule)
+}
+
+Set-Acl -Path $domainPath -AclObject$acl
+
+```
+
+### 2. Privileged Secret Invalidation Protocol
+
+Because the `krbtgt` password hash (`b308e018...`) permits arbitrary Golden Ticket forgery, execute a staged double password reset:
+
+1. **First Reset:** Reset the `krbtgt` account password via administrative tooling or script to force secondary key generation.
+2. **Replication Interval:** Maintain a mandatory holding window (minimum 10 hours) to allow valid Kerberos tickets to expire naturally across the domain topology.
+3. **Second Reset:** Execute the final `krbtgt` password reset to flush the previous key out of the `pwdLastSet` history window.
+
+### 3. Network Boundary Segmentation
+
+Enforce microsegmentation policies at the firewall layer:
+
+* Restrict inbound traffic to `DC01` on TCP 135 (EPMapper), TCP 445 (SMB), and the dynamic RPC range (`TCP 49152–65535`) strictly to authorized administrative subnets and peer Domain Controllers.
+* Explicitly drop inter-VLAN MSRPC traffic originating from standard workstation and client segments (`192.168.10.0/24`).
