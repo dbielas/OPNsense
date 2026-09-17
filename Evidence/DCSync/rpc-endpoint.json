@@ -1,0 +1,35 @@
+{
+  "timestamp": "2026-09-16T21:56:45.050539+0000",
+  "flow_id": 1598213404691556,
+  "in_iface": "em1",
+  "event_type": "alert",
+  "src_ip": "192.168.10.83",
+  "src_port": 41676,
+  "dest_ip": "192.168.20.75",
+  "dest_port": 135,
+  "proto": "TCP",
+  "ip_v": 4,
+  "pkt_src": "wire/pcap",
+  "alert": {
+    "action": "allowed",
+    "gid": 1,
+    "signature_id": 1000100,
+    "rev": 6,
+    "signature": "ATTACK-CHAIN - Client Subnet DRSUAPI RPC Bind Detected (DCSync)",
+    "category": "Attempted Administrator Privilege Gain",
+    "severity": 1
+  },
+  "app_proto": "dcerpc",
+  "direction": "to_server",
+  "flow": {
+    "pkts_toserver": 12,
+    "pkts_toclient": 6,
+    "bytes_toserver": 1264,
+    "bytes_toclient": 684,
+    "start": "2026-09-16T21:56:45.044433+0000",
+    "src_ip": "192.168.10.83",
+    "dest_ip": "192.168.20.75",
+    "src_port": 41676,
+    "dest_port": 135
+  }
+}
