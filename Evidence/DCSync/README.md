@@ -21,10 +21,10 @@ This directory contains end-to-end forensic evidence and network telemetry valid
 
 | Step | Source System | Evidence File / Artifact | Key Findings |
 |---|---|---|---|
-| **01. Attacker Execution** | `kali` (`192.168.10.83`) | `secretsdump-krbtgt.txt` | Executed `impacket-secretsdump`; extracted `krbtgt` RID 502 NTLM hash (`b308e018...`) via DRSUAPI without interactive logon. |
-| **02. Host Audit Telemetry** | `DC01` (`192.168.20.75`) | `DCSync-event.txt` | Captured Security Event ID 4662; confirmed `asrep_user` exercised `Control Access` (`0x100`) against GUID `{1131f6ad...}` on `domainDNS`. |
-| **03. RPC Port Resolution** | `opnsense` (`em1`, `em3`) | `eve.json` | Suricata alert SID `1000100` triggered on `192.168.10.83:41676 -> 192.168.20.75:135` querying DRSUAPI interface. |
-| **04. Replication Data Stream** | `opnsense` (`em1`, `em3`) | `eve.json` | Suricata alert SID `1000100` triggered on `192.168.10.83:58956 -> 192.168.20.75:49683`; captured `6,860 bytes` outbound replication payload. |
+| **01. Attacker Execution** | `kali` (`192.168.10.83`) | [secretsdump-krbtgt](./secretsdump-krbtgt.jpg) | Executed `impacket-secretsdump`; extracted `krbtgt` RID 502 NTLM hash (`b308e018...`) via DRSUAPI without interactive logon. |
+| **02. Host Audit Telemetry** | `DC01` (`192.168.20.75`) | [DCSync-event](./DCSync-event.txt) | Captured Security Event ID 4662; confirmed `asrep_user` exercised `Control Access` (`0x100`) against GUID `{1131f6ad...}` on `domainDNS`. |
+| **03. RPC Port Resolution** | `opnsense` (`em1`, `em3`) | [rpc-endpoint](./rpc-endpoint.json) | Suricata alert SID `1000100` triggered on `192.168.10.83:41676 -> 192.168.20.75:135` querying DRSUAPI interface. |
+| **04. Replication Data Stream** | `opnsense` (`em1`, `em3`) | [replication-stream](./replication-stream.json) | Suricata alert SID `1000100` triggered on `192.168.10.83:58956 -> 192.168.20.75:49683`; captured `6,860 bytes` outbound replication payload. |
 
 ---
 
