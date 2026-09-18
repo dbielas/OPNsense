@@ -143,18 +143,20 @@ Purge all non-standard replication access control entries on the root of the dom
 ```powershell
 $domainDN = (Get-ADDomain).DistinguishedName
 $domainPath = "AD:\$domainDN"
-$acl = Get-Acl -Path$domainPath
+$acl = Get-Acl -Path $domainPath
 
 # Target IT-Identity-Operations
 $targetGroup = "IT-Identity-Operations"
-$rulesToRemove = $acl.Access \vert{} Where-Object {$_.IdentityReference -match $targetGroup -and$_.ActiveDirectoryRights -match "ExtendedRight" 
+$rulesToRemove = $acl.Access | Where-Object { 
+    $_.IdentityReference -match $targetGroup -and 
+    $_.ActiveDirectoryRights -match "ExtendedRight" 
 }
 
-foreach ($rule in$rulesToRemove) {
+foreach ($rule in $rulesToRemove) {
     $acl.RemoveAccessRule($rule)
 }
 
-Set-Acl -Path $domainPath -AclObject$acl
+Set-Acl -Path $domainPath -AclObject $acl
 
 ```
 
@@ -166,9 +168,60 @@ Because the `krbtgt` password hash (`b308e018...`) permits arbitrary Golden Tick
 2. **Replication Interval:** Maintain a mandatory holding window (minimum 10 hours) to allow valid Kerberos tickets to expire naturally across the domain topology.
 3. **Second Reset:** Execute the final `krbtgt` password reset to flush the previous key out of the `pwdLastSet` history window.
 
-### 3. Network Boundary Segmentation
+### 3. Network Boundary Segmentation & Inline IPS Prevention
 
 Enforce microsegmentation policies at the firewall layer:
 
 * Restrict inbound traffic to `DC01` on TCP 135 (EPMapper), TCP 445 (SMB), and the dynamic RPC range (`TCP 49152–65535`) strictly to authorized administrative subnets and peer Domain Controllers.
 * Explicitly drop inter-VLAN MSRPC traffic originating from standard workstation and client segments (`192.168.10.0/24`).
+
+**Active Intrusion Prevention (Suricata Netmap IPS)**
+To actively prevent DCSync attacks on the wire before Active Directory can process the replication bind, the custom Suricata NIDS rule was transitioned to inline Netmap IPS mode by changing the action from `alert` to `drop`:
+
+```suricata
+drop tcp 192.168.10.0/24 any -> 192.168.20.75 any (
+    msg:"ATTACK-CHAIN - Client Subnet DRSUAPI RPC Bind Detected (DCSync)";
+    flow:to_server,established;
+    content:"|35 42 51 e3 06 4b d1 11 ab 04 00 c0 4f c2 dc d2|";
+    classtype:attempted-admin;
+    sid:1000100;
+    rev:6;
+)
+
+```
+
+**IPS Block Verification (`eve.json`)**
+Subsequent execution of the DCSync payload via Impacket resulted in an immediate inline connection drop. Suricata's dual-logging engine successfully generated correlated `alert` (action: blocked) and `drop` (reason: rules) events for the intercepted Endpoint Mapper request on TCP 135:
+
+```json
+{
+  "timestamp": "2026-09-18T02:39:28.017075+0000",
+  "flow_id": 51669271576421,
+  "in_iface": "em1",
+  "event_type": "alert",
+  "src_ip": "192.168.10.83",
+  "src_port": 36488,
+  "dest_ip": "192.168.20.75",
+  "dest_port": 135,
+  "alert": {
+    "action": "blocked",
+    "signature_id": 1000100,
+    "signature": "ATTACK-CHAIN - Client Subnet DRSUAPI RPC Bind Detected (DCSync)"
+  }
+}
+{
+  "timestamp": "2026-09-18T02:39:28.017075+0000",
+  "flow_id": 51669271576421,
+  "in_iface": "em1",
+  "event_type": "drop",
+  "src_ip": "192.168.10.83",
+  "src_port": 36488,
+  "dest_ip": "192.168.20.75",
+  "dest_port": 135,
+  "direction": "to_server",
+  "drop": {
+    "reason": "rules"
+  }
+}
+
+```
