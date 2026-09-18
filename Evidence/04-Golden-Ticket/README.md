@@ -22,7 +22,7 @@ This directory contains end-to-end evidence validating the post-exploitation for
 
 | Step | Source System | Evidence File / Artifact | Key Findings |
 | --- | --- | --- | --- |
-| **01. Ticket Forgery** | `kali` | `impacket-ticketer-aes.txt` | Executed `ticketer.py` with AES-256 key and Domain SID; successfully forged `Administrator.ccache`. |
+| **01. Ticket Forgery** | `kali` | [impacket-ticketer-aes](./impacket-ticketer-aes.jpg) | Executed `ticketer.py` with AES-256 key and Domain SID; successfully forged `Administrator.ccache`. |
 | **02. EDR Behavioral Block** | `kali` $\to$ `DC01` | `impacket-smbexec-fail.txt` | Attempted `smbexec.py`; blocked by Windows Defender behavioral heuristics (`STATUS_OBJECT_NAME_NOT_FOUND`). |
 | **03. LotL WinRM Execution** | `kali` $\to$ `DC01` | `evil-winrm-system.txt` | Executed `evil-winrm` passing the forged `.ccache` file; achieved interactive Domain Admin PowerShell shell. |
 
@@ -51,7 +51,7 @@ With the ticket loaded in memory, the attack pivots to Windows Remote Management
 
 ```bash
 # Execute native PowerShell remoting using the forged Kerberos ticket
-evil-winrm -i dc01.hybrid.lan -r hybrid.lan
+evil-winrm -i dc01.hybrid.lan -r hybrid.lan -K Administrator.ccache
 
 ```
 
