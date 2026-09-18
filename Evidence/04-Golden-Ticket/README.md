@@ -1,4 +1,4 @@
-# Evidence 04: Golden Ticket Forgery & EDR Evasion
+# Golden Ticket Forgery & EDR Evasion
 
 ## Executive Summary
 
