@@ -225,3 +225,9 @@ Subsequent execution of the DCSync payload via Impacket resulted in an immediate
 }
 
 ```
+---
+## 6. Post-Exploitation Phase
+
+With the `krbtgt` NTLM hash and AES keys successfully extracted via DCSync, the adversary possesses the cryptographic material required to forge Kerberos Ticket Granting Tickets (TGTs) and establish total, persistent Domain Dominance.
+
+➡️ **[Proceed to Evidence 05: Golden Ticket Forgery & EDR Evasion](../Evidence-05-Golden-Ticket/README.md)**
