@@ -1,0 +1,16 @@
+================================================================================
+EVIDENCE ARTIFACT 02: PROXY LISTENER SOCKET STATUS
+================================================================================
+Node:    OPNsense.internal (192.168.10.1)
+Command: sockstat -4 -l | grep squid
+
+squid   squid      18206  8 udp46 *:44460               *:*
+squid   squid      18206  9 udp4  *:62830               *:*
+squid   squid      18206 22 tcp4  127.0.0.1:3128        *:*
+squid   squid      18206 24 tcp4  127.0.0.1:3129        *:*
+squid   squid      18206 26 tcp4  192.168.10.1:3128     *:*
+
+Verification Details:
+- Port 3128: Standard plaintext HTTP listener active on localhost.
+- Port 3129: SSL-Bump transparent interception listener active on localhost.
+- Target of PF NAT 'rdr-to' redirection is confirmed listening and reachable.
