@@ -72,7 +72,6 @@ $x509 = New-Object System.Security.Cryptography.X509Certificates.X509Certificate
     Issuer           = $cert.Issuer
     Thumbprint       = $cert.GetCertHashString()
     InterceptActive  = ($cert.Issuer -like "*OPNsense Forward Proxy CA*")
-    ChainValidates   = (New-Object System.Security.Cryptography.X509Certificates.X509Chain).Build($x509)
 } | Format-List
 
 ```
