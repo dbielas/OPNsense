@@ -56,20 +56,23 @@ When an outbound HTTPS request hits the proxy listener:
 $uri = "https://secure.eicar.org"
 $webRequest = [System.Net.HttpWebRequest]::Create($uri)
 $webRequest.AllowAutoRedirect = $false
+
 try {
     $response = $webRequest.GetResponse()
     $response.Dispose()
 } catch {
-    # Suppress HTTP errors to inspect negotiated cert
 }
 
 $cert = $webRequest.ServicePoint.Certificate
+$x509 = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2($cert)
+
 [PSCustomObject]@{
     TargetURI        = $uri
     Subject          = $cert.Subject
     Issuer           = $cert.Issuer
     Thumbprint       = $cert.GetCertHashString()
-    InterceptActive  = ($cert.Issuer -like "*OPNsense-SubCA-Authority*")
+    InterceptActive  = ($cert.Issuer -like "*OPNsense Forward Proxy CA*")
+    ChainValidates   = (New-Object System.Security.Cryptography.X509Certificates.X509Chain).Build($x509)
 } | Format-List
 
 ```
