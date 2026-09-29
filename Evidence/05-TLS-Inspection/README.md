@@ -14,7 +14,7 @@ This directory contains end-to-end evidence validating the configuration, interc
 * **Interception Proxy Engine:** Squid (`squid` v6.x) running on loopback (`127.0.0.1:3129`)
 * **Certificate Authority Entity:** `OPNsense-SubCA-Authority` (Enterprise Subordinate CA)
 * **Firewall Redirection Mechanism:** FreeBSD Packet Filter (`pf`) Destination NAT (`rdr-to`)
-* **Validation Target:** `[https://secure.eicar.org](https://secure.eicar.org)` & Public TLS Endpoints
+* **Validation Target:** `https://secure.eicar.org` & Public TLS Endpoints
 
 ---
 
