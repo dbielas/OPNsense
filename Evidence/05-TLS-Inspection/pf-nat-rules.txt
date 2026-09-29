@@ -1,0 +1,15 @@
+================================================================================
+EVIDENCE ARTIFACT 03: PF REDIRECT RULES
+================================================================================
+Node:    OPNsense.internal (192.168.10.1)
+Command: pfctl -sn | grep rdr
+
+no rdr proto carp all
+rdr on em1 inet proto tcp from (em1:network) to any port = http -> (lo0:network) port 3128 round-robin
+rdr pass on em1 inet proto tcp from (em1:network) to any port = https -> 127.0.0.1 port 3129
+
+Verification Details:
+- Steering Interface: Interception is actively applied to internal interface 'em1' [192.168.10.0/24].
+- HTTP Redirection: Inbound TCP 80 from (em1:network) is redirected to loopback (lo0:network) port 3128.
+- HTTPS Redirection (SSL-Bump): Inbound TCP 443 from (em1:network) is redirected directly to 127.0.0.1 port 3129.
+- Automatic State Creation: The 'rdr pass' keyword confirms packets matching the HTTPS redirection rule automatically bypass filter rules and generate state, handing off traffic directly to Squid while preserving original destination state in /dev/pf.
