@@ -1,0 +1,67 @@
+================================================================================
+EVIDENCE ARTIFACT 01: AD CS SUBORDINATE CA ISSUANCE & OPNsense INTEGRATION
+================================================================================
+
+1. Active AD CS Database Issuance Record (Queried on DC01):
+--------------------------------------------------------------------------------
+Command: certutil -view -restrict "CertificateTemplate=SubCA,Disposition=20" -out "RequestID,CommonName,SerialNumber,CertificateHash,NotBefore,NotAfter"
+
+Schema:
+  Column Name                   Localized Name                Type    MaxLength
+  ----------------------------  ----------------------------  ------  ---------
+  RequestID                     Issued Request ID             Long    4 -- Indexed
+  CommonName                    Issued Common Name            String  8192 -- Indexed
+  SerialNumber                  Serial Number                 String  128 -- Indexed
+  CertificateHash               Certificate Hash              String  128 -- Indexed
+  NotBefore                     Certificate Effective Date    Date    8
+  NotAfter                      Certificate Expiration Date   Date    8 -- Indexed
+
+Row 1:
+  Issued Request ID: 0x5
+  Issued Common Name: "OPNsense Forward Proxy CA"
+  Serial Number: "6300000005d347c7f1ac8558f2000000000005"
+  Certificate Hash: "61 5d 84 1c ea 60 24 d9 44 67 d6 8d fb bb 21 db f9 75 cd 9a"
+  Certificate Effective Date: 9/25/2026 3:54 PM
+  Certificate Expiration Date: 9/9/2031 8:33 PM
+
+Maximum Row Index: 1
+
+1 Rows
+   6 Row Properties, Total Size = 264, Max Size = 118, Ave Size = 44
+   0 Request Attributes, Total Size = 0, Max Size = 0, Ave Size = 0
+   0 Certificate Extensions, Total Size = 0, Max Size = 0, Ave Size = 0
+   6 Total Fields, Total Size = 264, Max Size = 118, Ave Size = 44
+CertUtil: -view command completed successfully.
+
+
+2. OPNsense Trust Store & Runtime Path Verification:
+--------------------------------------------------------------------------------
+Command: openssl x509 -in /var/squid/ssl/ca.pem -noout -subject -issuer -serial -dates -fingerprint -purpose
+
+subject=C=NL, CN=OPNsense Forward Proxy CA
+issuer=DC=lan, DC=hybrid, CN=hybrid-DC01-CA
+serial=6300000005D347C7F1AC8558F2000000000005
+notBefore=Sep 25 22:54:29 2026 GMT
+notAfter=Sep 10 03:33:11 2031 GMT
+SHA1 Fingerprint=61:5D:84:1C:EA:60:24:D9:44:67:D6:8D:FB:BB:21:DB:F9:75:CD:9A
+Certificate purposes:
+SSL client : Yes
+SSL client CA : Yes
+SSL server : Yes
+SSL server CA : Yes
+Netscape SSL server : No
+Netscape SSL server CA : Yes
+S/MIME signing : Yes
+S/MIME signing CA : Yes
+S/MIME encryption : No
+S/MIME encryption CA : Yes
+CRL signing : Yes
+CRL signing CA : Yes
+Any Purpose : Yes
+Any Purpose CA : Yes
+OCSP helper : Yes
+OCSP helper CA : Yes
+Time Stamp signing : No
+Time Stamp signing CA : Yes
+Code signing : No
+Code signing CA : Yes
