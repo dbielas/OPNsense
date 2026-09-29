@@ -22,7 +22,7 @@ This directory contains end-to-end evidence validating the configuration, interc
 
 | Step | Source System | Evidence File / Artifact | Key Findings |
 | --- | --- | --- | --- |
-| **01. AD CS Subordinate Issuance** | `DC01` | [adcs-subca-issuance](https://www.google.com/search?q=./adcs-subca-issuance.txt&utm_source=gemini) | Issued subordinate signing certificate from Enterprise Root CA template; validated `Certificate Signing` and `CRL Signing` enhanced key usages. |
+| **01. AD CS Subordinate Issuance & Installation** | `DC01` / `OPNsense` | [adcs-subca-issuance.txt](./adcs-subca-issuance.txt) | Subordinate CA CSR issued by `DC01` (`SubCA` template); verified active certificate and private key installed in OPNsense under `/var/squid/ssl`, matching the active serial number, `IsCA=True`, and `Certificate Signing` / `CRL Signing` key usages bound to Squid. |
 | **02. Proxy Listener Verification** | `OPNsense` | [squid-socket-status](https://www.google.com/search?q=./squid-socket-status.txt&utm_source=gemini) | Executed `sockstat -4 -l | grep squid`; verified Squid listening on `127.0.0.1:3128` (HTTP) and `127.0.0.1:3129` (HTTPS SSL-Bump). |
 | **03. PF Redirect Rule Validation** | `OPNsense` | [pf-nat-rules](https://www.google.com/search?q=./pf-nat-rules.txt&utm_source=gemini) | Inspected `/tmp/rules.debug` via `pfctl -sn`; confirmed port forward rule steering TCP 443 from `192.168.10.0/24` to `127.0.0.1:3129`. |
 | **04. Domain Trust Inheritance Check** | `WRKSTN-01` | [cert-trust-verification](https://www.google.com/search?q=./cert-trust-verification.txt&utm_source=gemini) | Executed `Get-ChildItem Cert:\LocalMachine\Root`; confirmed domain-joined trust inheritance from AD CS without manual endpoint provisioning. |
