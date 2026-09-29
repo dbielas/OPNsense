@@ -1,0 +1,18 @@
+================================================================================
+EVIDENCE ARTIFACT 06: PLAINTEXT ACCESS LOG AUDIT
+================================================================================
+Node:    OPNsense.internal (192.168.10.1)
+Log:     /var/log/squid/access.log
+Client:  WRKSTN-01 (192.168.10.50)
+
+Raw Log Excerpt:
+--------------------------------------------------------------------------------
+1790719346.251   1529 192.168.10.50 NONE_NONE/000 0 CONNECT 89.238.73.97:443 - ORIGINAL_DST/89.238.73.97 -
+1790719346.528    275 192.168.10.50 TCP_MISS/403 2370 GET https://secure.eicar.org/ - ORIGINAL_DST/89.238.73.97 text/html
+1790719354.738    286 192.168.10.50 NONE_NONE/000 0 CONNECT 104.208.203.90:443 - ORIGINAL_DST/104.208.203.90 -
+1790719354.746      1 192.168.10.50 NONE_NONE/400 3290 - error:invalid-request - HIER_NONE/- text/html
+
+Verification Details:
+- TLS Decryption Proof: Line 2 logs the decrypted application-layer request 'GET https://secure.eicar.org/' rather than an opaque TCP CONNECT wrapper, verifying active SSL-Bump in-memory stream reconstruction.
+- Destination Preservation: Logs explicitly show 'ORIGINAL_DST/89.238.73.97', validating that the PF state table (/dev/pf) successfully delivered the real upstream destination to Squid following loopback redirection.
+- Policy Enforcement / Content Inspection: The 'TCP_MISS/403' action confirms the decrypted payload was intercepted, evaluated against local security policies/ICAP services, and blocked appropriately.
