@@ -14,7 +14,7 @@ This directory contains end-to-end evidence validating the configuration, crypto
 * **Test Client Node:** `WRKSTN-01` (192.168.10.50) — Windows 11 Enterprise Domain Member
 * **Interception Mechanism:** FreeBSD Packet Filter (`pf`) Port Redirection (`127.0.0.1:3129`) with `/dev/pf` NAT state tracking
 * **Inspection Engines:** Squid Proxy (SSL-Bump), C-ICAP Service (`srv_clamav`), ClamAV Engine
-* **Target Verification Endpoint:** `[https://secure.eicar.org/eicar.com.txt](https://secure.eicar.org/eicar.com.txt)`
+* **Target Verification Endpoint:** `https://secure.eicar.org/eicar.com.txt`
 
 ```
                      ┌────────────────────────────────────────────────────────┐
