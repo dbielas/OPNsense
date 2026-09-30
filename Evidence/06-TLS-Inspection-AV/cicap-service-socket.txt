@@ -1,0 +1,30 @@
+=== LISTENING SOCKETS (PORT 1344 & 3310) ===
+clamav  clamd      18260  4 tcp4  127.0.0.1:3310        *:*                  
+c_icap  c-icap     55740  3 tcp4  127.0.0.1:1344        *:*                  
+c_icap  c-icap     55340  3 tcp4  127.0.0.1:1344        *:*                  
+c_icap  c-icap     54962  3 tcp4  127.0.0.1:1344        *:*                  
+c_icap  c-icap     54637  3 tcp4  127.0.0.1:1344        *:*                  
+
+=== ACTIVE CONFIGURATION DIRECTIVES (VIRUS_SCAN.CONF) ===
+Service antivirus_module virus_scan.so
+ServiceAlias srv_clamav virus_scan
+ServiceAlias  avscan virus_scan?allow204=on&mode=simple
+virus_scan.ScanFileTypes TEXT DATA EXECUTABLE ARCHIVE GIF JPEG MSOFFICE
+virus_scan.SendPercentData 5
+virus_scan.StartSendPercentDataAfter 2M
+virus_scan.Allow204Responces on
+virus_scan.PassOnError off
+virus_scan.MaxObjectSize 5M
+Module common clamd_mod.so
+clamd_mod.ClamdHost 127.0.0.1
+clamd_mod.ClamdPort 3310
+
+=== C-ICAP PROCESS STATUS & WORKERS ===
+c_icap  54637   0.0  0.1   24580   2668  -  Ss   20:44     0:00.25 /usr/local/bin/c-icap -f /usr/local/etc/c-icap/c-icap.conf
+c_icap  54962   0.0  0.2   40844   3748  -  S    20:44     0:00.21 /usr/local/bin/c-icap -f /usr/local/etc/c-icap/c-icap.conf
+c_icap  55340   0.0  0.1   28552   2804  -  S    20:44     0:00.16 /usr/local/bin/c-icap -f /usr/local/etc/c-icap/c-icap.conf
+c_icap  55740   0.0  0.1   28552   2804  -  S    20:44     0:00.16 /usr/local/bin/c-icap -f /usr/local/etc/c-icap/c-icap.conf
+
+=== ENGINE BINDING TELEMETRY ===
+/var/log/cicap/cicap_20260930.log:<26>1 2026-09-30T20:25:20+00:00 OPNsense.internal c-icap 21889 - [meta sequenceId="2"] 21889/30941890660368, Setting antivirus default engine: clamd  
+/var/log/cicap/cicap_20260930.log:<26>1 2026-09-30T20:45:43+00:00 OPNsense.internal c-icap 54962 - [meta sequenceId="1"] 54962/29085841973264, Setting antivirus default engine: clamd  

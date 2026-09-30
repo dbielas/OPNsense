@@ -1,0 +1,27 @@
+=== CLAMAV VERSION & ENGINE INFO ===
+ClamAV 1.5.4/28139/Wed Sep 30 06:24:18 2026
+
+=== SIGNATURE DATABASE FILES ===
+total 168 MB
+-rw-r--r--  1 clamav clamav  8.9K Sep 27 23:07 bytecode-339.cvd.sign
+-rw-r--r--  1 clamav clamav  275K Sep 27 23:07 bytecode.cvd
+-rw-r--r--  1 clamav clamav   82M Sep 30 21:05 daily.cld
+-rw-r--r--  1 clamav clamav   90B Sep 27 23:05 freshclam.dat
+-rw-r--r--  1 clamav clamav  8.9K Sep 27 23:07 main-63.cvd.sign
+-rw-r--r--  1 clamav clamav   85M Sep 27 23:07 main.cvd
+
+=== FRESHCLAM UPDATE LOG ===
+ClamAV update process started at Wed Sep 30 21:09:59 2026
+daily.cld database is up-to-date (version: 28139, sigs: 355699, f-level: 90, builder: svc.clamav-publisher)
+main.cvd database is up-to-date (version: 63, sigs: 3287027, f-level: 90, builder: tomjudge)
+bytecode.cvd database is up-to-date (version: 339, sigs: 80, f-level: 90, builder: nrandolp)
+
+=== CLAMD STARTUP & DATABASE LOAD ===
+<182>1 2026-09-30T20:55:23+00:00 OPNsense.internal clamd 72985 - [meta sequenceId="16"] Loaded 3628083 signatures.
+<182>1 2026-09-30T20:55:32+00:00 OPNsense.internal clamd 72985 - [meta sequenceId="17"] TCP: Bound to [127.0.0.1]:3310
+<182>1 2026-09-30T20:55:32+00:00 OPNsense.internal clamd 72985 - [meta sequenceId="18"] TCP: Setting connection queue length to 200
+
+=== MEMORY UTILIZATION (RES IDENTIFIER) ===
+root    55898   0.0  0.1   14672   1704  -  I    20:54     0:00.03 /bin/sh /usr/local/etc/rc.d/clamav_clamd restart
+root    72590   0.0  0.1   14672   1664  -  I    20:54     0:00.00 /bin/sh /usr/local/etc/rc.d/clamav_clamd restart
+clamav  72985   0.0 28.8 1618440 583672  -  I    20:54     0:42.84 /usr/local/sbin/clamd

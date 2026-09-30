@@ -1,0 +1,37 @@
+=== SQUID ICAP DIRECTIVES (SQUID.CONF) ===
+# ICAP SETTINGS
+# enable icap
+icap_enable on
+icap_service_failure_limit -1
+icap_default_options_ttl 60
+# send user information to the icap server
+adaptation_send_client_ip on
+adaptation_send_username off
+icap_client_username_encode off
+icap_client_username_header X-Username
+icap_preview_enable on
+icap_preview_size 1024
+icap_service response_mod respmod_precache icap://127.0.0.1:1344/virus_scan
+adaptation_access response_mod deny !Safe_ports 
+adaptation_access response_mod deny CONNECT !SSL_ports 
+adaptation_access response_mod deny to_localhost
+adaptation_access response_mod allow localnet
+adaptation_access response_mod allow localhost
+adaptation_access response_mod deny all
+
+=== ACTIVE SQUID PORTS & INTERCEPT BINDINGS ===
+squid   squid      66195  8 udp46 *:37453               *:*                  
+squid   squid      66195  9 udp4  *:56183               *:*                  
+squid   squid      66195 22 tcp4  127.0.0.1:3128        *:*                  
+squid   squid      66195 24 tcp4  127.0.0.1:3129        *:*                  
+squid   squid      66195 26 tcp4  192.168.10.1:3128     *:*                  
+
+=== SQUID PROCESS & WORKER POOL ===
+squid   65719   0.0  0.0   68200    648  -  Is   20:02     0:00.01 /usr/local/sbin/squid -f /usr/local/etc/squid/squid.conf
+squid   66195   0.0  0.8  113236  16308  -  S    20:02     0:08.48 (squid-1) --kid squid-1 -f /usr/local/etc/squid/squid.conf (squid)
+squid   66300   0.0  0.2   23128   4720  -  I    20:02     0:01.58 (security_file_certgen) -s /var/squid/ssl_crtd -M 4MB (security_file_certg)
+squid   66382   0.0  0.0   23128    516  -  I    20:02     0:00.03 (security_file_certgen) -s /var/squid/ssl_crtd -M 4MB (security_file_certg)
+squid   66506   0.0  0.0   23128    516  -  I    20:02     0:00.03 (security_file_certgen) -s /var/squid/ssl_crtd -M 4MB (security_file_certg)
+squid   66596   0.0  0.0   23128    512  -  I    20:02     0:00.03 (security_file_certgen) -s /var/squid/ssl_crtd -M 4MB (security_file_certg)
+squid   66615   0.0  0.0   23128    520  -  I    20:02     0:00.02 (security_file_certgen) -s /var/squid/ssl_crtd -M 4MB (security_file_certg)
+squid   68983   0.0  0.0   24648    732  -  S    20:02     0:00.19 (pinger) (pinger)
