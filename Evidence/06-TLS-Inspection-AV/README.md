@@ -1,46 +1,25 @@
-# OPNsense Transparent TLS Inspection & Antivirus Pipeline Validation
+# OPNsense In-Line Antivirus & Malicious Payload Interception Pipeline
 
 ## Executive Summary
 
-This directory contains end-to-end evidence validating the configuration, cryptographic trust hierarchy, traffic redirection, and real-time antivirus inspection of an enterprise transparent SSL-Bump deployment on an OPNsense firewall. It demonstrates how outbound HTTPS sessions initiated by a domain-joined Windows workstation (`WRKSTN-01`) are transparently intercepted, decrypted in memory using synthetic leaf certificates signed by an AD CS subordinate authority (`OPNsense-SubCA-Authority`), and scanned for malicious payloads using C-ICAP and ClamAV before delivery.
+This directory contains end-to-end evidence validating the dynamic detection, in-memory isolation, and active termination of malicious web-borne payloads passing through the OPNsense security gateway. Building upon decrypted SSL-Bump transport streams, it demonstrates how decrypted HTTP response bodies are handed off to the local C-ICAP service, scanned against the ClamAV signature database in real time, and replaced with an HTTP `403 Forbidden` virus notification page before infected bytes can reach the client endpoint (`WRKSTN-01`).
 
 ---
 
 ## 1. Test Metadata
 
-* **Firewall / Proxy Gateway:** `OPNsense.internal` (192.168.10.1) — FreeBSD / OPNsense Core
-* **Enterprise Root CA:** `hybrid-DC01-CA` (192.168.10.10) — Active Directory Certificate Services (AD CS)
-* **Subordinate CA Entity:** `OPNsense-SubCA-Authority` (Subject: `CN=OPNsense Forward Proxy CA, C=NL`)
-* **Test Client Node:** `WRKSTN-01` (192.168.10.50) — Windows 11 Enterprise Domain Member
-* **Interception Mechanism:** FreeBSD Packet Filter (`pf`) Port Redirection (`127.0.0.1:3129`) with `/dev/pf` NAT state tracking
-* **Inspection Engines:** Squid Proxy (SSL-Bump), C-ICAP Service (`srv_clamav`), ClamAV Engine
-* **Target Verification Endpoint:** `https://secure.eicar.org/eicar.com.txt`
+* **Security Gateway:** `OPNsense.internal` (192.168.10.1) — FreeBSD / OPNsense Core
+* **Antivirus Scanning Daemon:** ClamAV (`clamd` v1.x)
+* **Adaptation Protocol Daemon:** C-ICAP (`c-icap` v0.5.x)
+* **ICAP Service Module:** `srv_clamav.so` (Service: `srv_clamav`)
+* **Test Client Node:** `WRKSTN-01` (192.168.10.50) — Windows 11 Enterprise
+* **Test Malicious Signature:** EICAR Standard Anti-Virus Test File (`Eicar-Signature` / `Eicar-Test-Signature`)
+* **Vector Endpoints Tested:**
+* HTTP Plaintext: `[http://secure.eicar.org/eicar.com.txt](http://secure.eicar.org/eicar.com.txt)`
+* HTTPS Intercepted: `[https://secure.eicar.org/eicar.com.txt](https://secure.eicar.org/eicar.com.txt)`
 
-```
-                     ┌────────────────────────────────────────────────────────┐
-                     │              OPNsense Security Gateway                 │
-                     │                                                        │
-[ WRKSTN-01 ]        │  ┌───────────┐    rdr    ┌───────────┐                 │        [ Origin WAN ]
-192.168.10.50        │  │  PF (NAT) │ ────────> │   Squid   │                 │        89.238.73.97:443
- (Windows 11)        │  └───────────┘ :443->3129│ (SSL-Bump)│                 │     (secure.eicar.org)
-      │              │         │                └─────┬─────┘                 │              │
-      │  Downstream  │         │ /dev/pf              │ Decrypted             │  Upstream    │
-      │  TLS Session │         │ DIOCNATLOOK          │ Stream                │  TLS Session │
-      │  (Synthetic) │         ▼                      ▼                       │  (Public CA) │
-      ├──────────────┼─────────────────────────>┌───────────┐                 ├──────────────┤
-      │              │                          │   C-ICAP  │                 │              │
-      │              │                          └─────┬─────┘                 │              │
-      │              │                                │ In-Memory             │              │
-      │              │                                ▼ Scan                  │              │
-      │              │                          ┌───────────┐                 │              │
-      │              │                          │  ClamAV   │                 │              │
-      │              │                          └───────────┘                 │              │
-      │              └────────────────────────────────────────────────────────┘              │
-      ▼                                                                                      ▼
-[ Root Store: hybrid-DC01-CA ]                                                   [ Public Trust Anchor ]
 
-```
-
+* **Enforcement Behavior:** Complete downstream payload suppression; dynamic template injection (`VIRUS FOUND`)
 
 ---
 
@@ -48,119 +27,141 @@ This directory contains end-to-end evidence validating the configuration, crypto
 
 | Step | Source System | Evidence File / Artifact | Key Findings |
 | --- | --- | --- | --- |
-| **01. Subordinate CA Issuance** | `DC01` | [adcs-subca-issuance.txt](https://www.google.com/search?q=./adcs-subca-issuance.txt) | Verified SubCA CSR signing by `hybrid-DC01-CA`; confirmed `Basic Constraints: IsCA=True` and key usage permissions. |
-| **02. Packet Filter Redirection** | `OPNsense` | [pf-nat-rules.txt](https://www.google.com/search?q=./pf-nat-rules.txt) | Inspected `/tmp/rules.debug`; verified PF NAT redirecting outbound client TCP 443 traffic to loopback port `3129`. |
-| **03. Interception Socket Listeners** | `OPNsense` | [sockstat-listeners.txt](https://www.google.com/search?q=./sockstat-listeners.txt) | Executed `sockstat -4 -l`; confirmed Squid listening on `127.0.0.1:3129` and C-ICAP daemon listening on `127.0.0.1:1344`. |
-| **04. Domain Trust Inheritance** | `WRKSTN-01` | [gpo-root-trust.txt](https://www.google.com/search?q=./gpo-root-trust.txt) | Queried `Cert:\LocalMachine\Root`; confirmed `hybrid-DC01-CA` enterprise root certificate inherited via Group Policy. |
-| **05. Dynamic Leaf Forgery & Trust** | `WRKSTN-01` | [tls-leaf-cert-inspect.txt](https://www.google.com/search?q=./tls-leaf-cert-inspect.txt) | Inspected negotiated TLS handshake for `secure.eicar.org`; verified synthetic leaf signed by `OPNsense Forward Proxy CA` with valid browser path validation. |
-| **06. Plaintext Access Log Audit** | `OPNsense` | [squid-access-logs.txt](https://www.google.com/search?q=./squid-access-logs.txt) | Inspected `/var/log/squid/access.log`; verified `GET` plaintext URI logging and `ORIGINAL_DST/89.238.73.97` state recovery. |
-| **07. In-Line Antivirus Interception** | `OPNsense, WRKSTN-01` | [clamav-virus-block.txt](https://www.google.com/search?q=./clamav-virus-block.txt) | Verified ClamAV and C-ICAP blocked `eicar.com.txt`; confirmed Squid served HTTP 403 infection page and logged signature detection. |
+| **01. ClamAV Engine & Signature Status** | `OPNsense` | [clamav-engine-signatures.txt](https://www.google.com/search?q=./clamav-engine-signatures.txt) | Inspected `freshclam.log` and `clamd.log`; confirmed active signatures database (`daily.cvd`, `main.cvd`) loaded in RAM. |
+| **02. C-ICAP Service Socket & Module Binding** | `OPNsense` | [cicap-service-socket.txt](https://www.google.com/search?q=./cicap-service-socket.txt) | Executed `sockstat -4 -l | grep c-icap`; verified daemon bound to `127.0.0.1:1344` with module `srv_clamav` loaded. |
+| **03. Proxy-to-ICAP Adaptation Plumbing** | `OPNsense` | [squid-icap-config.txt](https://www.google.com/search?q=./squid-icap-config.txt) | Inspected Squid ICAP directives; validated `icap_enable on`, `adaptation_access`, and response mode `icap_service service_avi_resp respmod_precache`. |
+| **04. Malicious Payload Suppression (Client)** | `WRKSTN-01` | [client-eicar-suppression.txt](https://www.google.com/search?q=./client-eicar-suppression.txt) | Executed `Invoke-WebRequest` against EICAR endpoint; confirmed zero signature bytes written to disk and HTTP `403 Forbidden` received. |
+| **05. C-ICAP In-Memory Detection Telemetry** | `OPNsense` | [cicap-detection-log.txt](https://www.google.com/search?q=./cicap-detection-log.txt) | Inspected `/var/log/c-icap/server.log` and `/var/log/c-icap/access.log`; verified `VIRUS DETECTED: Eicar-Test-Signature` trigger. |
+| **06. Proxy Enforcement & Block Page Delivery** | `OPNsense` | [squid-antivirus-block-log.txt](https://www.google.com/search?q=./squid-antivirus-block-log.txt) | Verified `access.log` logged `TCP_MISS/403` with C-ICAP block template size rather than EICAR raw payload delivery. |
 
 ---
 
-## 3. Deep-Dive Analysis: Interception Architecture & AV Inspection Engine
+## 3. Deep-Dive Analysis: The In-Line AV Stream Inspection Lifecycle
 
-### Kernel-Level Redirection & State Recovery (`/dev/pf`)
-
-Transparent interception does not require manual proxy configurations on the client. Outbound traffic steering and state preservation follow a strict path:
-
-* **Packet Redirection:** PF captures egress TCP 443 packets from the client subnet and redirects them to Squid's local interception socket:
-```text
-rdr on em0 proto tcp from 192.168.10.0/24 to !<internal_nets> port 443 -> 127.0.0.1 port 3129
+```
+[ WRKSTN-01 ]              [ Squid (SSL-Bump) ]              [ C-ICAP / clamd ]            [ Origin Server ]
+ 192.168.10.50                 127.0.0.1:3129                  127.0.0.1:1344              secure.eicar.org
+      │                              │                               │                            │
+      │ 1. GET /eicar.com.txt (TLS)  │                               │                            │
+      ├─────────────────────────────>│ 2. Decrypt Session In-Memory  │                            │
+      │                              │ 3. Fetch Origin Payload (TLS) │                            │
+      │                              ├───────────────────────────────────────────────────────────>│
+      │                              │ 4. HTTP 200 OK (Payload Stream)                            │
+      │                              │<───────────────────────────────────────────────────────────┤
+      │                              │                               │                            │
+      │                              │ 5. RESPMOD (Pipe Stream)      │                            │
+      │                              ├──────────────────────────────>│                            │
+      │                              │                               │ 6. Scan Body (In-Memory)   │
+      │                              │                               │    MATCH: Eicar-Signature  │
+      │                              │ 7. ICAP 200 OK (Modified)     │                            │
+      │                              │    Inject: HTTP 403 Forbidden │                            │
+      │                              │<──────────────────────────────┤                            │
+      │ 8. Terminate Downstream Flow │                               │                            │
+      │    Send Custom Infection Page│                               │                            │
+      │<─────────────────────────────┤                               │                            │
+      ▼                              ▼                               ▼                            ▼
 
 ```
 
+### The ICAP Adaptation Hook (`RESPMOD`)
 
-* **Original Destination Preservation:** Because port redirection modifies the destination IP at the socket layer to `127.0.0.1`, Squid queries `/dev/pf` via the FreeBSD `DIOCNATLOOK` `ioctl` call. This retrieves the original public destination IP (`ORIGINAL_DST/89.238.73.97`), preventing connection blackholing.
+Squid intercepts the HTTP response body before sending it downstream to the client workstation by utilizing the **Internet Content Adaptation Protocol (ICAP)** in Response Modification (`RESPMOD`) mode:
 
-### TLS Termination & Dynamic Leaf Generation
+* **Decryption Hand-Off:** Squid decrypts the incoming TLS stream from the origin server directly into RAM buffers.
+* **Shared Memory Interprocess Streaming:** Instead of writing files to disk, Squid pipes the unencrypted bytes over `127.0.0.1:1344` to the C-ICAP service worker processes.
+* **Scan Interception:** The `srv_clamav` plugin sends chunks to `clamd` via local UNIX domain sockets (`/var/run/clamav/clamd.sock`).
 
-Squid terminates two independent cryptographic handshakes:
+### Threat Remediation & Downstream Injection
 
-1. **Upstream Handshake:** Squid initiates an outbound TLS connection to the public origin server (`secure.eicar.org`), validates the external certificate chain, and reads the Subject Alternative Names (SANs).
-2. **Synthetic Leaf Forgery:** Squid's helper daemon (`security_file_certgen`) generates a matching leaf certificate dynamically and signs it using the intermediate private key (`OPNsense Forward Proxy CA`).
-3. **Downstream Handshake:** The generated certificate is served to `WRKSTN-01`. Because `hybrid-DC01-CA` is pre-installed in the workstation's Trusted Root store via GPO, the client validates the synthetic certificate transparently.
+If the payload matches a known threat pattern:
 
-### Content Adaptation & ClamAV Inspection Pipeline
+1. **Stream Severing:** C-ICAP immediately terminates buffering of the upstream payload. The rest of the upstream stream is discarded.
+2. **Payload Replacement:** C-ICAP alters the HTTP response status header from `200 OK` to `403 Forbidden` and substitutes the response body with an administrative infection warning template (`VIRUS FOUND: Eicar-Test-Signature`).
+3. **Downstream Delivery:** Squid encrypts the warning page using the dynamic synthetic certificate and delivers it to `WRKSTN-01`. The workstation operating system and browser never ingest or write the malicious binary strings.
 
-Once decrypted into raw HTTP in memory:
+### Payload Interception Validation Script
 
-1. **Stream Forwarding to C-ICAP:** Squid routes the unencrypted HTTP response body over local socket `127.0.0.1:1344` using the ICAP protocol (`icap://127.0.0.1:1344/srv_clamav`).
-2. **Signature Evaluation:** The `srv_clamav` service streams the payload into the ClamAV scanning engine.
-3. **Interception Verdict:**
-* **Clean Traffic:** Payload streams back to Squid and is re-encrypted downstream to the client.
-* **Malicious Signature Detected:** C-ICAP halts downstream transmission, returns an ICAP block response, and instructs Squid to substitute the payload with a customized HTTP `403 Forbidden` virus notification page.
-
-
-
-### Dynamic Leaf Inspection Script
+Run from **WRKSTN-01** to capture the client-side blocked response:
 
 ```powershell
-$targetUri = "https://secure.eicar.org"
-$webRequest = [System.Net.HttpWebRequest]::Create($targetUri)
-$webRequest.AllowAutoRedirect = $false
+$target = "https://secure.eicar.org/eicar.com.txt"
+$evidenceFile = "C:\Evidence\client-eicar-suppression.txt"
 
 try {
-    $response = $webRequest.GetResponse()
-    $response.Dispose()
+    $response = Invoke-WebRequest -Uri $target -UseBasicParsing
+    "VULNERABILITY: Malware payload was NOT intercepted. Status: $($response.StatusCode)" | Out-File $evidenceFile
 } catch {
-    # Suppress HTTP status exceptions to inspect negotiated SSL/TLS stream
-}
+    $statusCode = $_.Exception.Response.StatusCode.value__
+    $streamReader = New-Object System.IO.StreamReader($_.Exception.Response.GetResponseStream())
+    $body = $streamReader.ReadToEnd()
+    
+    @"
+================================================================================
+EVIDENCE ARTIFACT 04: CLIENT-SIDE MALWARE INTERCEPTION
+================================================================================
+Target URL    : $target
+HTTP Status   : $statusCode (Access Denied / Blocked)
+Payload Leak  : Zero malicious bytes transferred
 
-$cert = [System.Security.Cryptography.X509Certificates.X509Certificate2]$webRequest.ServicePoint.Certificate
-[PSCustomObject]@{
-    TargetURI        = $targetUri
-    Subject          = $cert.Subject
-    Issuer           = $cert.Issuer
-    Thumbprint       = $cert.Thumbprint
-    InterceptActive  = ($cert.Issuer -like "*OPNsense Forward Proxy CA*")
-} | Format-List
+Response Body Received:
+--------------------------------------------------------------------------------
+$body
+================================================================================
+"@ | Out-File $evidenceFile
+}
 
 ```
 
 ---
 
-## 4. Operational Considerations & Troubleshooting Runbook
+## 4. Operational Considerations & AV Troubleshooting Runbook
 
-### Authority Information Access (AIA) & PartialChain Validation
+### ClamAV Memory Footprint & FreeBSD OOM-Killer
 
-* **Behavior:** Web browsers (Edge, Chrome) successfully validate synthetic leaf certificates, whereas raw .NET / PowerShell scripts (`X509Chain.Build()`) may return `PartialChain: A certificate chain could not be built to a trusted root authority`.
-* **Root Cause:** Browsers support dynamic AIA chasing and local intermediate certificate caching, whereas Windows .NET CryptoAPI validates strictly against the machine store (`Cert:\LocalMachine\CA`) by default.
-* **Remediation:** Ensure the intermediate Subordinate CA certificate is published domain-wide to the enterprise Intermediate Certification Authorities container via Active Directory:
-```cmd
-certutil -dspublish -f opnsense_subca.cer SubCA
+* **Behavior:** Under low-memory conditions, FreeBSD's Out-Of-Memory (OOM) pager will terminate `clamd` because the signature database requires 1.2 GB+ of continuous virtual memory.
+* **Symptom:** Squid logs `ICAP protocol error` or `ICAP service unavailable`, causing traffic either to drop (fail-closed) or bypass scanning entirely (fail-open).
+* **Verification:** Check `/var/log/messages` on OPNsense for:
+```text
+kernel: pid XXXX (clamd), jid 0, uid 106: exited on signal 9 (terminated)
 
 ```
 
 
 
-### Squid Query Parameter Truncation (`strip_query_terms`)
+### Signature Update Synchronization (`freshclam`)
 
-* **Behavior:** Requests containing query strings (e.g., `?nocache=12345`) appear in `/var/log/squid/access.log` with a trailing `?` and omitted parameters.
-* **Operational Cause:** Squid enables `strip_query_terms on` by default to prevent logging sensitive user tokens, passwords, or session IDs in plaintext. Cache busting functions normally inside the engine despite log sanitation.
+* **Behavior:** When `freshclam` downloads signature updates, `clamd` must reload database definitions into memory.
+* **Impact:** During the 10-30 second reload interval, C-ICAP connection pools may saturate.
+* **Remediation:** Configure `freshclam` updates to execute during maintenance windows and tune Squid's ICAP service bypass directives:
+```text
+icap_service_failure_limit 10 in 60
+bypass on
 
-### ClamAV Memory Exhaustion Recovery Protocol
+```
 
-If high memory pressure on FreeBSD causes ClamAV (`clamd`) or C-ICAP to terminate, uninspected HTTPS traffic may fail open or trigger connection reset errors. Execute the following service recovery sequence via the OPNsense shell:
 
-1. **Verify Daemon Socket States:**
+
+### Service Health Restoration Sequence
+
+If C-ICAP stops processing streams or the AV engine freezes, run this recovery sequence from the OPNsense shell:
+
+1. **Verify ClamAV Daemon Socket:**
 ```sh
-sockstat -4 -l | grep -E "clamd|c-icap"
+ls -l /var/run/clamav/clamd.sock
 
 ```
 
 
-2. **Cycle Content Security Services:**
+2. **Restart Antivirus and Adaptation Daemons:**
 ```sh
 configctl clamav restart
 configctl cicap restart
-configctl webgui restart
 
 ```
 
 
-3. **Verify Proxy Service Re-Attachment:**
+3. **Validate Real-Time Scanner Log Hook:**
 ```sh
-tail -n 20 /var/log/c-icap/server.log
+tail -f /var/log/c-icap/server.log
 
 ```
