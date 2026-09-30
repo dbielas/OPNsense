@@ -14,11 +14,7 @@ This directory contains end-to-end evidence validating the dynamic detection, in
 * **ICAP Service Module:** `srv_clamav.so` (Service: `srv_clamav`)
 * **Test Client Node:** `WRKSTN-01` (192.168.10.50) — Windows 11 Enterprise
 * **Test Malicious Signature:** EICAR Standard Anti-Virus Test File (`Eicar-Signature` / `Eicar-Test-Signature`)
-* **Vector Endpoints Tested:**
-* HTTP Plaintext: `[http://secure.eicar.org/eicar.com.txt](http://secure.eicar.org/eicar.com.txt)`
-* HTTPS Intercepted: `[https://secure.eicar.org/eicar.com.txt](https://secure.eicar.org/eicar.com.txt)`
-
-
+* **HTTPS Intercepted:** `https://secure.eicar.org/eicar.com`
 * **Enforcement Behavior:** Complete downstream payload suppression; dynamic template injection (`VIRUS FOUND`)
 
 ---
@@ -28,10 +24,10 @@ This directory contains end-to-end evidence validating the dynamic detection, in
 | Step | Source System | Evidence File / Artifact | Key Findings |
 | --- | --- | --- | --- |
 | **01. ClamAV Engine & Signature Status** | `OPNsense` | [clamav-engine-signatures.txt](https://www.google.com/search?q=./clamav-engine-signatures.txt) | Inspected `freshclam.log` and `clamd.log`; confirmed active signatures database (`daily.cvd`, `main.cvd`) loaded in RAM. |
-| **02. C-ICAP Service Socket & Module Binding** | `OPNsense` | [cicap-service-socket.txt](https://www.google.com/search?q=./cicap-service-socket.txt) | Executed `sockstat -4 -l | grep c-icap`; verified daemon bound to `127.0.0.1:1344` with module `srv_clamav` loaded. |
+| **02. C-ICAP Service Socket & Module Binding** | `OPNsense` | [cicap-service-socket.txt](https://www.google.com/search?q=./cicap-service-socket.txt) | Executed `sockstat -4 -l | grep c-icap`; verified daemon bound to `127.0.0.1:1344` with module `virus_scan` loaded. |
 | **03. Proxy-to-ICAP Adaptation Plumbing** | `OPNsense` | [squid-icap-config.txt](https://www.google.com/search?q=./squid-icap-config.txt) | Inspected Squid ICAP directives; validated `icap_enable on`, `adaptation_access`, and response mode `icap_service service_avi_resp respmod_precache`. |
 | **04. Malicious Payload Suppression (Client)** | `WRKSTN-01` | [client-eicar-suppression.txt](https://www.google.com/search?q=./client-eicar-suppression.txt) | Executed `Invoke-WebRequest` against EICAR endpoint; confirmed zero signature bytes written to disk and HTTP `403 Forbidden` received. |
-| **05. C-ICAP In-Memory Detection Telemetry** | `OPNsense` | [cicap-detection-log.txt](https://www.google.com/search?q=./cicap-detection-log.txt) | Inspected `/var/log/c-icap/server.log` and `/var/log/c-icap/access.log`; verified `VIRUS DETECTED: Eicar-Test-Signature` trigger. |
+| **05. C-ICAP In-Memory Detection Telemetry** | `OPNsense` | [cicap-detection-log.txt](https://www.google.com/search?q=./cicap-detection-log.txt) | Inspected  `/var/log/c-icap/access.log`; verified `VIRUS DETECTED: Eicar-Test-Signature` trigger. |
 | **06. Proxy Enforcement & Block Page Delivery** | `OPNsense` | [squid-antivirus-block-log.txt](https://www.google.com/search?q=./squid-antivirus-block-log.txt) | Verified `access.log` logged `TCP_MISS/403` with C-ICAP block template size rather than EICAR raw payload delivery. |
 
 ---
