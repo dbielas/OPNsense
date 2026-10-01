@@ -38,7 +38,7 @@ This directory contains end-to-end evidence validating the dynamic detection, in
 [ WRKSTN-01 ]              [ Squid (SSL-Bump) ]              [ C-ICAP / clamd ]            [ Origin Server ]
  192.168.10.50                 127.0.0.1:3129                  127.0.0.1:1344              secure.eicar.org
       │                              │                               │                            │
-      │ 1. GET /eicar.com.txt (TLS)  │                               │                            │
+      │ 1. GET /eicar.com (TLS)      │                               │                            │
       ├─────────────────────────────>│ 2. Decrypt Session In-Memory  │                            │
       │                              │ 3. Fetch Origin Payload (TLS) │                            │
       │                              ├───────────────────────────────────────────────────────────>│
@@ -80,7 +80,7 @@ If the payload matches a known threat pattern:
 Run from **WRKSTN-01** to capture the client-side blocked response:
 
 ```powershell
-$target = "https://secure.eicar.org/eicar.com.txt"
+$target = "https://secure.eicar.org/eicar.com"
 $evidenceFile = "C:\Evidence\client-eicar-suppression.txt"
 
 try {
