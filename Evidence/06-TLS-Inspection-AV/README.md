@@ -93,7 +93,7 @@ $statusCode = $lines[-1].Trim();$responseContent = ($lines[0..($lines.Length - 2
 if ($statusCode -eq "403") {
 @"
 ================================================================================
-EVIDENCE ARTIFACT 04: CLIENT-SIDE MALWARE INTERCEPTION
+MALWARE INTERCEPTION
 ================================================================================
 Target URL    : $target
 HTTP Status   : $statusCode (Access Denied / Blocked)
