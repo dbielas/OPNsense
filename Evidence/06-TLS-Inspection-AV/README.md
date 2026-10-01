@@ -80,18 +80,18 @@ If the payload matches a known threat pattern:
 Run from **WRKSTN-01** to capture the client-side blocked response:
 
 ```powershell
-$target = "https://secure.eicar.org/eicar.com"
-$evidenceFile = "C:\Evidence\client-eicar-suppression.txt"
+$target = "https://secure.eicar.org/eicar.com";
+$evidenceDirectory = $PWD.Path;
+$evidenceFile = Join-Path $evidenceDirectory "client-eicar-suppression.txt";
 
-try {
-    $response = Invoke-WebRequest -Uri $target -UseBasicParsing
-    "VULNERABILITY: Malware payload was NOT intercepted. Status: $($response.StatusCode)" | Out-File $evidenceFile
-} catch {
-    $statusCode = $_.Exception.Response.StatusCode.value__
-    $streamReader = New-Object System.IO.StreamReader($_.Exception.Response.GetResponseStream())
-    $body = $streamReader.ReadToEnd()
-    
-    @"
+if (-not (Test-Path $evidenceDirectory)) { New-Item -ItemType Directory -Path $evidenceDirectory -Force | Out-Null };
+
+$rawOutput = & curl.exe --ssl-no-revoke -s -S -i -w "`n%{http_code}" $target;
+$lines =$rawOutput -split "`r?`n";
+$statusCode = $lines[-1].Trim();$responseContent = ($lines[0..($lines.Length - 2)]) -join "`r`n";
+
+if ($statusCode -eq "403") {
+@"
 ================================================================================
 EVIDENCE ARTIFACT 04: CLIENT-SIDE MALWARE INTERCEPTION
 ================================================================================
@@ -99,11 +99,25 @@ Target URL    : $target
 HTTP Status   : $statusCode (Access Denied / Blocked)
 Payload Leak  : Zero malicious bytes transferred
 
-Response Body Received:
+Response Body & Headers Received:
 --------------------------------------------------------------------------------
-$body
+$responseContent
 ================================================================================
-"@ | Out-File $evidenceFile
+"@ | Out-File -FilePath $evidenceFile -Encoding utf8
+} else {
+@"
+================================================================================
+CRITICAL FAILURE: PAYLOAD NOT INTERCEPTED
+================================================================================
+Target URL    : $target
+HTTP Status   : $statusCode
+Payload Leak  : MALWARE BODY DELIVERED TO CLIENT
+
+Response Body & Headers Received:
+--------------------------------------------------------------------------------
+$responseContent
+================================================================================
+"@ | Out-File -FilePath $evidenceFile -Encoding utf8
 }
 
 ```
