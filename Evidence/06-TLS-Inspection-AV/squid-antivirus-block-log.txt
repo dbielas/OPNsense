@@ -1,0 +1,10 @@
+=== SQUID ACCESS LOG: 403 FORBIDDEN ENFORCEMENT ===
+1790812882.932    176 192.168.10.50 TCP_MISS/403 8218 GET https://secure.eicar.org/eicar.com - ORIGINAL_DST/89.238.73.97 text/html
+1790812902.840    188 192.168.10.50 TCP_MISS/403 8218 GET https://secure.eicar.org/eicar.com - ORIGINAL_DST/89.238.73.97 text/html
+1790812933.723    221 192.168.10.50 TCP_MISS/200 323 HEAD https://secure.eicar.org/eicar.com - ORIGINAL_DST/89.238.73.97 -
+1790812961.134      0 192.168.10.50 TCP_MEM_HIT/200 333 HEAD https://secure.eicar.org/eicar.com - HIER_NONE/- -
+1790812975.002    205 192.168.10.50 TCP_MISS/403 8218 GET https://secure.eicar.org/eicar.com - ORIGINAL_DST/89.238.73.97 text/html
+1790812988.267    203 192.168.10.50 TCP_MISS/200 323 HEAD https://secure.eicar.org/eicar.com - ORIGINAL_DST/89.238.73.97 -
+1790813114.447    160 192.168.10.50 TCP_MISS/403 8218 GET https://secure.eicar.org/eicar.com - ORIGINAL_DST/89.238.73.97 text/html
+1790819214.686    191 192.168.10.50 TCP_MISS/403 8218 GET https://secure.eicar.org/eicar.com - ORIGINAL_DST/89.238.73.97 text/html
+1790819415.059    226 192.168.10.50 TCP_MISS/403 8218 GET https://secure.eicar.org/eicar.com - ORIGINAL_DST/89.238.73.97 text/html

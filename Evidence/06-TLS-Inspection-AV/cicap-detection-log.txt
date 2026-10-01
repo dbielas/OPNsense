@@ -1,0 +1,23 @@
+=== C-ICAP REAL-TIME DETECTION TELEMETRY ===
+/var/log/cicap/cicap_20260930.log:<26>1 2026-09-30T23:58:11+00:00 OPNsense.internal c-icap 54962 - [meta sequenceId="2"] 54962/29085841956880, VIRUS DETECTED: Eicar-Test-Signature , http client ip: 192.168.10.50, http user: -, http url: https://secure.eicar.org/eicar.com    
+/var/log/cicap/cicap_20260930.log:<26>1 2026-09-30T23:58:26+00:00 OPNsense.internal c-icap 54962 - [meta sequenceId="11"] 54962/29085841969168, VIRUS DETECTED: Eicar-Test-Signature , http client ip: 192.168.10.50, http user: -, http url: https://secure.eicar.org/eicar.com    
+/var/log/cicap/cicap_20260930.log:<26>1 2026-09-30T23:59:09+00:00 OPNsense.internal c-icap 54962 - [meta sequenceId="30"] 54962/29085841969168, VIRUS DETECTED: Eicar-Test-Signature , http client ip: 192.168.10.50, http user: -, http url: https://secure.eicar.org/eicar.com    
+/var/log/cicap/cicap_20260930.log:<26>1 2026-09-30T23:59:19+00:00 OPNsense.internal c-icap 54962 - [meta sequenceId="34"] 54962/29085841969168, VIRUS DETECTED: Eicar-Test-Signature , http client ip: 192.168.10.50, http user: -, http url: https://secure.eicar.org/eicar.com    
+/var/log/cicap/cicap_20261001.log:<26>1 2026-10-01T00:01:22+00:00 OPNsense.internal c-icap 54962 - [meta sequenceId="2"] 54962/29085841969168, VIRUS DETECTED: Eicar-Test-Signature , http client ip: 192.168.10.50, http user: -, http url: https://secure.eicar.org/eicar.com    
+/var/log/cicap/cicap_20261001.log:<26>1 2026-10-01T00:01:42+00:00 OPNsense.internal c-icap 54962 - [meta sequenceId="5"] 54962/29085841969168, VIRUS DETECTED: Eicar-Test-Signature , http client ip: 192.168.10.50, http user: -, http url: https://secure.eicar.org/eicar.com    
+/var/log/cicap/cicap_20261001.log:<26>1 2026-10-01T00:02:55+00:00 OPNsense.internal c-icap 54962 - [meta sequenceId="14"] 54962/29085841969168, VIRUS DETECTED: Eicar-Test-Signature , http client ip: 192.168.10.50, http user: -, http url: https://secure.eicar.org/eicar.com    
+/var/log/cicap/cicap_20261001.log:<26>1 2026-10-01T00:05:14+00:00 OPNsense.internal c-icap 54962 - [meta sequenceId="1"] 54962/29085841960976, VIRUS DETECTED: Eicar-Test-Signature , http client ip: 192.168.10.50, http user: -, http url: https://secure.eicar.org/eicar.com    
+/var/log/cicap/cicap_20261001.log:<26>1 2026-10-01T01:46:54+00:00 OPNsense.internal c-icap 54962 - [meta sequenceId="1"] 54962/29085841967120, VIRUS DETECTED: Eicar-Test-Signature , http client ip: 192.168.10.50, http user: -, http url: https://secure.eicar.org/eicar.com    
+/var/log/cicap/cicap_20261001.log:<26>1 2026-10-01T01:50:15+00:00 OPNsense.internal c-icap 54962 - [meta sequenceId="1"] 54962/29085841967120, VIRUS DETECTED: Eicar-Test-Signature , http client ip: 192.168.10.50, http user: -, http url: https://secure.eicar.org/eicar.com    
+
+=== ASSOCIATED RESPMOD TRANSACTION LOGS ===
+/var/log/cicap/cicap_20261001.log:<30>1 2026-10-01T00:02:55+00:00 OPNsense.internal c-icap 54962 - [meta sequenceId="23"] 127.0.0.1 127.0.0.1 RESPMOD virus_scan 200
+/var/log/cicap/cicap_20261001.log:<30>1 2026-10-01T00:05:14+00:00 OPNsense.internal c-icap 54962 - [meta sequenceId="2"] 127.0.0.1 127.0.0.1 RESPMOD virus_scan 200
+/var/log/cicap/cicap_20261001.log:<30>1 2026-10-01T00:06:00+00:00 OPNsense.internal c-icap 54962 - [meta sequenceId="4"] 127.0.0.1 127.0.0.1 RESPMOD virus_scan 200
+/var/log/cicap/cicap_20261001.log:<30>1 2026-10-01T00:08:01+00:00 OPNsense.internal c-icap 54962 - [meta sequenceId="1"] 127.0.0.1 127.0.0.1 RESPMOD virus_scan 200
+/var/log/cicap/cicap_20261001.log:<30>1 2026-10-01T00:08:55+00:00 OPNsense.internal c-icap 54962 - [meta sequenceId="8"] 127.0.0.1 127.0.0.1 RESPMOD virus_scan 200
+/var/log/cicap/cicap_20261001.log:<30>1 2026-10-01T00:11:58+00:00 OPNsense.internal c-icap 54962 - [meta sequenceId="2"] 127.0.0.1 127.0.0.1 RESPMOD virus_scan 200
+/var/log/cicap/cicap_20261001.log:<30>1 2026-10-01T00:14:29+00:00 OPNsense.internal c-icap 54962 - [meta sequenceId="7"] 127.0.0.1 127.0.0.1 RESPMOD virus_scan 200
+/var/log/cicap/cicap_20261001.log:<30>1 2026-10-01T00:19:38+00:00 OPNsense.internal c-icap 54962 - [meta sequenceId="3"] 127.0.0.1 127.0.0.1 RESPMOD virus_scan 200
+/var/log/cicap/cicap_20261001.log:<30>1 2026-10-01T01:46:54+00:00 OPNsense.internal c-icap 54962 - [meta sequenceId="2"] 127.0.0.1 127.0.0.1 RESPMOD virus_scan 200
+/var/log/cicap/cicap_20261001.log:<30>1 2026-10-01T01:50:15+00:00 OPNsense.internal c-icap 54962 - [meta sequenceId="2"] 127.0.0.1 127.0.0.1 RESPMOD virus_scan 200
