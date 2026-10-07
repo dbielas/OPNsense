@@ -1,0 +1,75 @@
+=== Step 03: TLS Handshake & Dynamic Certificate Chain Verification ===
+Date/Time: 2026-10-06 21:47:49 GMT
+Source Node: WRKSTN-01 (192.168.10.50)
+Target Endpoint: 10.0.2.25:443 (Mock C2 via OPNsense Transparent Proxy)
+Command Executed: openssl s_client -connect 10.0.2.25:443
+
+--- Handshake & Cryptographic Parameters ---
+Connection Status: CONNECTED(00000198)
+Protocol: TLSv1.3
+Cipher: TLS_AES_256_GCM_SHA384
+Key Exchange Group: X25519MLKEM768
+Signature Algorithm: sha256WithRSAEncryption
+Server Public Key: RSA 2048 bit
+
+--- Verified Certificate Hierarchy ---
+depth=2 DC=lan, DC=hybrid, CN=hybrid-DC01-CA
+depth=1 C=NL, CN=OPNsense Forward Proxy CA
+depth=0 CN=10.0.2.25
+
+Certificate Chain:
+ 0 s:CN=10.0.2.25
+   i:C=NL, CN=OPNsense Forward Proxy CA
+   Validity: Oct 6 21:47:49 2026 GMT to Oct 6 21:47:49 2027 GMT
+ 1 s:C=NL, CN=OPNsense Forward Proxy CA
+   i:DC=lan, DC=hybrid, CN=hybrid-DC01-CA
+   Validity: Sep 25 22:54:29 2026 GMT to Sep 10 03:33:11 2031 GMT
+ 2 s:DC=lan, DC=hybrid, CN=hybrid-DC01-CA
+   i:DC=lan, DC=hybrid, CN=hybrid-DC01-CA
+   Validity: Sep 10 03:23:11 2026 GMT to Sep 10 03:33:11 2031 GMT
+
+--- Verification Notes ---
+Verify return code: 19 (self-signed certificate in certificate chain)
+Note: Return code 19 is expected in CLI execution without an explicit -CAfile parameter.
+Trust validation succeeds cleanly in browser and Windows CryptoAPI applications where
+hybrid-DC01-CA is installed in the Local Computer Trusted Root store (certlm.msc).
+
+--- Result ---
+STATUS: PASSED (SSL-Bump dynamic leaf generation and chain bundling confirmed operational)=== Step 03: TLS Handshake & Dynamic Certificate Chain Verification ===
+Date/Time: 2026-10-06 21:47:49 GMT
+Source Node: WRKSTN-01 (192.168.10.50)
+Target Endpoint: 10.0.2.25:443 (Mock C2 via OPNsense Transparent Proxy)
+Command Executed: openssl s_client -connect 10.0.2.25:443
+
+--- Handshake & Cryptographic Parameters ---
+Connection Status: CONNECTED(00000198)
+Protocol: TLSv1.3
+Cipher: TLS_AES_256_GCM_SHA384
+Key Exchange Group: X25519MLKEM768
+Signature Algorithm: sha256WithRSAEncryption
+Server Public Key: RSA 2048 bit
+
+--- Verified Certificate Hierarchy ---
+depth=2 DC=lan, DC=hybrid, CN=hybrid-DC01-CA
+depth=1 C=NL, CN=OPNsense Forward Proxy CA
+depth=0 CN=10.0.2.25
+
+Certificate Chain:
+ 0 s:CN=10.0.2.25
+   i:C=NL, CN=OPNsense Forward Proxy CA
+   Validity: Oct 6 21:47:49 2026 GMT to Oct 6 21:47:49 2027 GMT
+ 1 s:C=NL, CN=OPNsense Forward Proxy CA
+   i:DC=lan, DC=hybrid, CN=hybrid-DC01-CA
+   Validity: Sep 25 22:54:29 2026 GMT to Sep 10 03:33:11 2031 GMT
+ 2 s:DC=lan, DC=hybrid, CN=hybrid-DC01-CA
+   i:DC=lan, DC=hybrid, CN=hybrid-DC01-CA
+   Validity: Sep 10 03:23:11 2026 GMT to Sep 10 03:33:11 2031 GMT
+
+--- Verification Notes ---
+Verify return code: 19 (self-signed certificate in certificate chain)
+Note: Return code 19 is expected in CLI execution without an explicit -CAfile parameter.
+Trust validation succeeds cleanly in browser and Windows CryptoAPI applications where
+hybrid-DC01-CA is installed in the Local Computer Trusted Root store (certlm.msc).
+
+--- Result ---
+STATUS: PASSED (SSL-Bump dynamic leaf generation and chain bundling confirmed operational)

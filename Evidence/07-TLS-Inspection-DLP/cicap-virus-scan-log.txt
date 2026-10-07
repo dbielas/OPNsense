@@ -1,0 +1,2 @@
+##[root@OPNsense ~]# tail -f /var/log/cicap/latest.log
+<26>1 2026-10-07T22:20:50+00:00 OPNsense.internal c-icap 30963 - [meta sequenceId="1354"] 30963/27085909733392, VIRUS DETECTED: DLP.Outbound.RestrictedPII.UNOFFICIAL , http client ip: 192.168.10.50, http user: -, http url: https://10.0.2.25/exfil
