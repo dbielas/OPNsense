@@ -23,12 +23,12 @@ This directory documents the technical implementation and empirical validation o
 
 | Step | Source System | Evidence File / Artifact | Key Findings |
 | --- | --- | --- | --- |
-| **01. Cleartext HTTP Benign POST** | `WRKSTN-01, Debian VM` | [http-benign-post-validation.txt](https://www.google.com/search?q=./evidence/http-benign-post-validation.txt) | Executed `curl.exe` over plain HTTP (`:80`); received `200 OK`; Debian listener logged benign payload. |
-| **02. Cleartext HTTP DLP Block** | `WRKSTN-01, OPNsense` | [http-dlp-block-validation.txt](https://www.google.com/search?q=./evidence/http-dlp-block-validation.txt) | Executed `curl.exe` containing `CONFIDENTIAL_PAYROLL`; received `403 Forbidden` (`ERR_SEC_ACCESS_DENIED`); 0 bytes reached listener. |
-| **03. TLS Handshake & Chain Verification** | `WRKSTN-01` | [openssl-tls-chain-validation.txt](https://www.google.com/search?q=./evidence/openssl-tls-chain-validation.txt) | Verified dynamic leaf certificate generation signed by `OPNsense-SubCA-Authority` linking up to `ADCS-Root-CA` with valid `IP:10.0.2.25` SAN. |
-| **04. Encrypted HTTPS Benign POST** | `WRKSTN-01, Debian VM` | [https-ssl-bump-benign-post.txt](https://www.google.com/search?q=./evidence/https-ssl-bump-benign-post.txt) | Transmitted encrypted POST via SSL-Bump; received `200 OK` with `Cache-Status: OPNsense.internal;detail=mismatch`; Debian logged 26-byte payload. |
-| **05. Encrypted HTTPS DLP Block** | `WRKSTN-01, OPNsense` | [https-dlp-encrypted-block.txt](https://www.google.com/search?q=./evidence/https-dlp-encrypted-block.txt) | Transmitted encrypted POST containing `CONFIDENTIAL_PAYROLL`; Squid decrypted stream, C-ICAP tripped `DLP.Outbound.RestrictedPII`, returned `403 Forbidden`; 0 bytes leaked. |
-| **06. C-ICAP Virus Detection Log** | `OPNsense` | [cicap-virus-scan-log.txt](https://www.google.com/search?q=./evidence/cicap-virus-scan-log.txt) | Inspected `/var/log/cicap/latest.log`; confirmed signature match `virus: DLP.Outbound.RestrictedPII` from client `192.168.10.50`. |
+| **01. Cleartext HTTP Benign POST** | `WRKSTN-01, Debian VM` | [http-benign-post-validation.txt](./evidence/http-benign-post-validation.txt) | Executed `curl.exe` over plain HTTP (`:80`); received `200 OK`; Debian listener logged benign payload. |
+| **02. Cleartext HTTP DLP Block** | `WRKSTN-01, OPNsense` | [http-dlp-block-validation.txt](./evidence/http-dlp-block-validation.txt) | Executed `curl.exe` containing `CONFIDENTIAL_PAYROLL`; received `403 Forbidden` (`ERR_SEC_ACCESS_DENIED`); 0 bytes reached listener. |
+| **03. TLS Handshake & Chain Verification** | `WRKSTN-01` | [openssl-tls-chain-validation.txt](./evidence/openssl-tls-chain-validation.txt) | Verified dynamic leaf certificate generation signed by `OPNsense-SubCA-Authority` linking up to `ADCS-Root-CA` with valid `IP:10.0.2.25` SAN. |
+| **04. Encrypted HTTPS Benign POST** | `WRKSTN-01, Debian VM` | [https-ssl-bump-benign-post.txt](./evidence/https-ssl-bump-benign-post.txt) | Transmitted encrypted POST via SSL-Bump; received `200 OK` with `Cache-Status: OPNsense.internal;detail=mismatch`; Debian logged 26-byte payload. |
+| **05. Encrypted HTTPS DLP Block** | `WRKSTN-01, OPNsense` | [https-dlp-encrypted-block.txt](./evidence/https-dlp-encrypted-block.txt) | Transmitted encrypted POST containing `CONFIDENTIAL_PAYROLL`; Squid decrypted stream, C-ICAP tripped `DLP.Outbound.RestrictedPII`, returned `403 Forbidden`; 0 bytes leaked. |
+| **06. C-ICAP Virus Detection Log** | `OPNsense` | [cicap-virus-scan-log.txt](./evidence/cicap-virus-scan-log.txt) | Inspected `/var/log/cicap/latest.log`; confirmed signature match `virus: DLP.Outbound.RestrictedPII` from client `192.168.10.50`. |
 
 ---
 
