@@ -28,11 +28,11 @@ This directory contains end-to-end evidence validating the deployment, signal he
 | **04. Standard A/AAAA Flagging** | Python Sieve | [sieve-anomaly-standard](./sieve-anomaly-standard.txt) | Caught 27-char payload `Q09ORklERU5USUFMX1BBWVJPTEw` at H = 4.357; satisfied standard gates (Len >= 20, H >= 4.15). |
 | **05. TXT Tunneling Flagging** | Python Sieve | [sieve-anomaly-txt](./sieve-anomaly-txt.txt) | Caught 32-char payload at H = 4.289 on `TXT` record; satisfied relaxed tunneling gates (Len >= 16, H >= 3.80). |
 | **06. Apex Debounce Suppression** | Python Sieve | [sieve-debounce-burst](./sieve-debounce-burst.txt) | Ingested secondary query burst for `intruder.internal`; confirmed in-flight suppression within 30-second TTL window. |
-| **07. OpenRouter Model Verdict** | Python Arbiter | [arbiter-decision-response](./arbiter-decision-response.json) | Dispatched context payload to `inception/mercury-decide:free`; returned P(Exfil) = 0.9890 in 348.3ms. |
+| **07. OpenRouter Model Verdict** | Python Arbiter | [arbiter-decision-response](./arbiter-decision-response.txt) | Dispatched context payload to `inception/mercury-decide:free`; returned P(Exfil) = 0.9890 in 348.3ms. |
 | **08. Unbound Socket Mitigation** | Python Arbiter | [unbound-containment-exec](./unbound-containment-exec.txt) | Executed `local_zone redirect` and `local_data A 127.0.0.1` via Arbiter. |
 | **09. Unbound Zone Table State** | Unbound Resolver | [unbound-table-inspection](./unbound-table-inspection.txt) | Executed `unbound-control list_local_data \| grep 127.0.0.1`; confirmed volatile redirect entry for target apex. |
 | **10. Client Containment Test** | `WRKSTN-01` | [client-resolution-verify](./client-resolution-verify.txt) | Resolved `test.intruder.internal` returning `127.0.0.1`, while benign internet lookups resolved cleanly. |
-| **11. Forensic Audit Trail** | Edge Filesystem | [sinkhole-audit](./sinkhole-audit.log) | Validated JSON forensic record committed to `/var/log/sinkhole_audit.log` with timestamp, client IP, heuristics, and model confidence. |
+| **11. Forensic Audit Trail** | Edge Filesystem | [sinkhole-audit](./sinkhole-audit.json) | Validated JSON forensic record committed to `/var/log/sinkhole_audit.log` with timestamp, client IP, heuristics, and model confidence. |
 
 ---
 
