@@ -1,0 +1,38 @@
+[root@OPNsense ~/opnsense/dns-exfil]# python3 dns_pipeline.py -v --dry-run --no-contain
+======================================================================
+DNS EXFILTRATION SIEVE & ARBITER PIPELINE
+======================================================================
+ Mode:            DRY RUN (Simulated)
+ Containment:     DISABLED (--no-contain)
+ Verbose Logs:    ENABLED
+ Telemetry Source: /tmp/ramdisk/eve-dns.json
+ Standard Gates:   Len >= 20, Entropy >= 4.15
+ TXT Gates:        Len >= 16, Entropy >= 3.80
+ Hyphen Bypass:    label.count('-') >= 2 (Enabled)
+ Model Threshold:  P >= 0.75
+ Debounce TTL:     30.0s
+======================================================================
+[ARBITER INIT] Process 2 online.
+[SIEVE INIT] Process 1 online. Monitoring /tmp/ramdisk/eve-dns.json...
+[SIEVE READY] Attached to /tmp/ramdisk/eve-dns.json. Processing live telemetry...
+[SIEVE EVAL] [FLAGGED] QNAME: Q09ORklERU5USUFMX1BBWVJPTEw.intruder.internal | Type: AAAA | Len: 27 (min 20: PASS) | H: 4.357 (min 4.15: PASS)
+[SIEVE ENQUEUE] Push to Arbiter: Q09ORklERU5USUFMX1BBWVJPTEw.intruder.internal (Apex: intruder.internal)
+
+[ARBITER POP] Received Anomaly -> Q09ORklERU5USUFMX1BBWVJPTEw.intruder.internal
+  ├── Client IP:    192.168.20.75
+  ├── RRType:       AAAA
+  ├── Left Label:   Q09ORklERU5USUFMX1BBWVJPTEw
+  ├── Entropy:      4.3566
+  └── Apex Domain:  intruder.internal
+[ARBITER DRY-RUN] Bypassing OpenRouter API.
+[ARBITER VERDICT] Latency: 0.0ms | P(Exfil): 0.8800 (Threshold: 0.75) | Tokens: [P:0 C:0 T:0 (Simulated)]
+
+[!] HIGH-CONFIDENCE EXFILTRATION DETECTED: Containment triggered for *.intruder.internal
+[CONTAINMENT SKIP] --no-contain active. Unbound commands skipped.
+[AUDIT] Committed forensic evidence entry to /var/log/sinkhole_audit.log
+[SIEVE BYPASS] Hyphenated compound hostname (3 hyphens >= 2): amcs-prod-global-handler.trafficmanager.NET
+[SIEVE BYPASS] Hyphenated compound hostname (2 hyphens >= 2): fd-api-iris.trafficmanager.NET
+^CProcess Process-2:
+
+[*] Stopping pipeline...
+Process Process-1:

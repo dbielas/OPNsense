@@ -1,0 +1,58 @@
+[root@OPNsense ~/opnsense/dns-exfil]# python3 dns_pipeline.py -v --dry-run
+======================================================================
+DNS EXFILTRATION SIEVE & ARBITER PIPELINE
+======================================================================
+ Mode:            DRY RUN (Simulated)
+ Containment:     ENABLED (unbound-control)
+ Verbose Logs:    ENABLED
+ Telemetry Source: /tmp/ramdisk/eve-dns.json
+ Standard Gates:   Len >= 20, Entropy >= 4.15
+ TXT Gates:        Len >= 16, Entropy >= 3.80
+ Hyphen Bypass:    label.count('-') >= 2 (Enabled)
+ Model Threshold:  P >= 0.75
+ Debounce TTL:     30.0s
+======================================================================
+[ARBITER INIT] Process 2 online.
+[SIEVE INIT] Process 1 online. Monitoring /tmp/ramdisk/eve-dns.json...
+[SIEVE READY] Attached to /tmp/ramdisk/eve-dns.json. Processing live telemetry...
+[SIEVE EVAL] [FLAGGED] QNAME: y0ZgkpolN85EFuRK5K769AAp1N9Sm37X.intruder.internal | Type: A    | Len: 32 (min 20: PASS) | H: 4.562 (min 4.15: PASS)
+  ├── Client IP:    192.168.20.75
+  ├── RRType:       A
+  ├── Left Label:   y0ZgkpolN85EFuRK5K769AAp1N9Sm37X
+  ├── Entropy:      4.5625
+  └── Apex Domain:  intruder.internal
+[SIEVE ENQUEUE] Push to Arbiter: y0ZgkpolN85EFuRK5K769AAp1N9Sm37X.intruder.internal (Apex: intruder.internal)
+[SIEVE EVAL] [FLAGGED] QNAME: y0ZgkpolN85EFuRK5K769AAp1N9Sm37X.intruder.internal | Type: AAAA | Len: 32 (min 20: PASS) | H: 4.562 (min 4.15: PASS)
+[SIEVE DEBOUNCE] Dropping burst query for in-flight apex: *.intruder.internal
+
+[ARBITER POP] Received Anomaly -> y0ZgkpolN85EFuRK5K769AAp1N9Sm37X.intruder.internal[SIEVE EVAL] [FLAGGED] QNAME: UJ2RgkKqUOcPdosjHGQXJVKb8YO04ivY.intruder.internal | Type: AAAA | Len: 32 (min 20: PASS) | H: 4.688 (min 4.15: PASS)
+[SIEVE DEBOUNCE] Dropping burst query for in-flight apex: *.intruder.internal
+[SIEVE EVAL] [FLAGGED] QNAME: UJ2RgkKqUOcPdosjHGQXJVKb8YO04ivY.intruder.internal | Type: A    | Len: 32 (min 20: PASS) | H: 4.688 (min 4.15: PASS)
+[SIEVE DEBOUNCE] Dropping burst query for in-flight apex: *.intruder.internal
+[SIEVE EVAL] [FLAGGED] QNAME: IK5N1oskmhxPW1gdCs1FRhtB4is8RauJ.intruder.internal | Type: AAAA | Len: 32 (min 20: PASS) | H: 4.578 (min 4.15: PASS)
+[SIEVE DEBOUNCE] Dropping burst query for in-flight apex: *.intruder.internal
+[SIEVE EVAL] [FLAGGED] QNAME: IK5N1oskmhxPW1gdCs1FRhtB4is8RauJ.intruder.internal | Type: A    | Len: 32 (min 20: PASS) | H: 4.578 (min 4.15: PASS)
+[SIEVE DEBOUNCE] Dropping burst query for in-flight apex: *.intruder.internal
+[SIEVE EVAL] [FLAGGED] QNAME: 3Cs4aVKnKB37RJOEGNdVrRqnm0GlrKNu.intruder.internal | Type: A    | Len: 32 (min 20: PASS) | H: 4.414 (min 4.15: PASS)
+[SIEVE DEBOUNCE] Dropping burst query for in-flight apex: *.intruder.internal
+[SIEVE EVAL] [FLAGGED] QNAME: 3Cs4aVKnKB37RJOEGNdVrRqnm0GlrKNu.intruder.internal | Type: AAAA | Len: 32 (min 20: PASS) | H: 4.414 (min 4.15: PASS)
+[ARBITER DRY-RUN] Bypassing OpenRouter API.
+[ARBITER VERDICT] Latency: 0.0ms | P(Exfil): 0.8800 (Threshold: 0.75) | Tokens: [P:0 C:0 T:0 (Simulated)]
+
+[!] HIGH-CONFIDENCE EXFILTRATION DETECTED: Containment triggered for *.intruder.internal
+[CONTAINMENT] Executing: unbound-control local_zone intruder.internal redirect
+[SIEVE DEBOUNCE] Dropping burst query for in-flight apex: *.intruder.internal
+[SIEVE EVAL] [FLAGGED] QNAME: PrFPHzhaRY1D6p6yEmK5JOcuzi1mOicM.intruder.internal | Type: A    | Len: 32 (min 20: PASS) | H: 4.500 (min 4.15: PASS)
+[SIEVE DEBOUNCE] Dropping burst query for in-flight apex: *.intruder.internal
+[SIEVE EVAL] [FLAGGED] QNAME: PrFPHzhaRY1D6p6yEmK5JOcuzi1mOicM.intruder.internal | Type: AAAA | Len: 32 (min 20: PASS) | H: 4.500 (min 4.15: PASS)
+[SIEVE DEBOUNCE] Dropping burst query for in-flight apex: *.intruder.internal
+[CONTAINMENT] Executing: unbound-control local_data intruder.internal A 127.0.0.1
+[✓] ACTIVE SINKHOLE: *.intruder.internal -> 127.0.0.1
+[AUDIT] Committed forensic evidence entry to /var/log/sinkhole_audit.log
+[SIEVE EVAL] [CLEAN] QNAME: gbl.his.hybridcompute.trafficmanager.NET | Type: A    | Len:  3 (min 20: FAIL) | H: 1.585 (min 4.15: FAIL)
+^CProcess Process-2:
+
+[*] Stopping pipeline...
+Process Process-1:
+[*] Pipeline shutdown complete.
+[root@OPNsense ~/opnsense/dns-exfil]#

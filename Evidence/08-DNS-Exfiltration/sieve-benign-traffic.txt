@@ -1,0 +1,34 @@
+[root@OPNsense ~/opnsense/dns-exfil]# python3 dns_pipeline.py -v --dry-run
+======================================================================
+DNS EXFILTRATION SIEVE & ARBITER PIPELINE
+======================================================================
+ Mode:            DRY RUN (Simulated)
+ Containment:     ENABLED (unbound-control)
+ Verbose Logs:    ENABLED
+ Telemetry Source: /tmp/ramdisk/eve-dns.json
+ Standard Gates:   Len >= 20, Entropy >= 4.15
+ TXT Gates:        Len >= 16, Entropy >= 3.80
+ Hyphen Bypass:    label.count('-') >= 2 (Enabled)
+ Model Threshold:  P >= 0.75
+ Debounce TTL:     30.0s
+======================================================================
+[ARBITER INIT] Process 2 online.
+[SIEVE INIT] Process 1 online. Monitoring /tmp/ramdisk/eve-dns.json...
+[SIEVE READY] Attached to /tmp/ramdisk/eve-dns.json. Processing live telemetry...
+[SIEVE EVAL] [CLEAN] QNAME: go.microsoft.com.edgekey.NET             | Type: A    | Len:  2 (min 20: FAIL) | H: 1.000 (min 4.15: FAIL)
+[SIEVE EVAL] [CLEAN] QNAME: e6570.d.akamaiedge.NET                   | Type: A    | Len:  5 (min 20: FAIL) | H: 2.322 (min 4.15: FAIL)
+[SIEVE EVAL] [CLEAN] QNAME: gbl.his.hybridcompute.trafficmanager.NET | Type: A    | Len:  3 (min 20: FAIL) | H: 1.585 (min 4.15: FAIL)
+[SIEVE BYPASS] Hyphenated compound hostname (3 hyphens >= 2): amcs-prod-global-handler.trafficmanager.NET
+[SIEVE BYPASS] Hyphenated compound hostname (5 hyphens >= 2): sfmc-amcs-prod-wus3-0-handler.westus3.cloudapp.azure.com
+[SIEVE EVAL] [CLEAN] QNAME: gbl.his.hybridcompute.trafficmanager.NET | Type: A    | Len:  3 (min 20: FAIL) | H: 1.585 (min 4.15: FAIL)
+[SIEVE BYPASS] Hyphenated compound hostname (5 hyphens >= 2): sfmc-amcs-prod-wus3-0-handler.westus3.cloudapp.azure.com
+[SIEVE BYPASS] Known metadata/protocol prefix: _dmarc.intruder.internal
+[SIEVE BYPASS] Known metadata/protocol prefix: _dmarc.intruder.internal
+[SIEVE BYPASS] Hyphenated compound hostname (3 hyphens >= 2): prod-wus-host-01.intruder.internal
+[SIEVE BYPASS] Hyphenated compound hostname (3 hyphens >= 2): prod-wus-host-01.intruder.internal
+[SIEVE BYPASS] Hyphenated compound hostname (3 hyphens >= 2): amcs-prod-global-handler.trafficmanager.NET
+^C
+[*] Stopping pipeline...Process Process-2:
+
+[*] Pipeline shutdown complete.
+Process Process-1:

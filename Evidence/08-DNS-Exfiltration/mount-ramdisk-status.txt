@@ -1,0 +1,3 @@
+tmpfs on /tmp/ramdisk (tmpfs, local)
+Filesystem    Size    Used   Avail Capacity  Mounted on
+tmpfs          64M    476K     64M     1%    /tmp/ramdisk

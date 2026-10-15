@@ -1,0 +1,40 @@
+[root@OPNsense ~/opnsense/dns-exfil]# sudo python3 dns_pipeline.py -v --api-key <api-key>
+======================================================================
+DNS EXFILTRATION SIEVE & ARBITER PIPELINE
+======================================================================
+ Mode:            LIVE PRODUCTION
+ Containment:     ENABLED (unbound-control)
+ Verbose Logs:    ENABLED
+ Telemetry Source: /tmp/ramdisk/eve-dns.json
+ Standard Gates:   Len >= 20, Entropy >= 4.15
+ TXT Gates:        Len >= 16, Entropy >= 3.80
+ Hyphen Bypass:    label.count('-') >= 2 (Enabled)
+ Model Threshold:  P >= 0.75
+ Debounce TTL:     30.0s
+======================================================================
+[ARBITER INIT] Process 2 online.
+[SIEVE INIT] Process 1 online. Monitoring /tmp/ramdisk/eve-dns.json...
+[SIEVE READY] Attached to /tmp/ramdisk/eve-dns.json. Processing live telemetry...
+[ARBITER INIT] Reconciled 3 active quarantined zones from Unbound.
+[SIEVE EVAL] [FLAGGED] QNAME: GirQUXElwOVu4MLVRKHCMXzt72BFHahj.intruder.internal | Type: TXT  | Len: 32 (min 16: PASS) | H: 4.750 (min 3.80: PASS)
+[SIEVE ENQUEUE] Push to Arbiter: GirQUXElwOVu4MLVRKHCMXzt72BFHahj.intruder.internal (Apex: intruder.internal)
+
+[ARBITER POP] Received Anomaly -> GirQUXElwOVu4MLVRKHCMXzt72BFHahj.intruder.internal
+  ├── Client IP:    192.168.20.75
+  ├── RRType:       TXT
+  ├── Left Label:   GirQUXElwOVu4MLVRKHCMXzt72BFHahj
+  ├── Entropy:      4.7500
+  └── Apex Domain:  intruder.internal
+[ARBITER VERDICT] Latency: 348.3ms | P(Exfil): 0.9890 (Threshold: 0.75) | Tokens: [P:0 C:0 T:0]
+
+[!] HIGH-CONFIDENCE EXFILTRATION DETECTED: Containment triggered for *.intruder.internal
+[CONTAINMENT] Executing: unbound-control local_zone intruder.internal redirect
+[CONTAINMENT] Executing: unbound-control local_data intruder.internal A 127.0.0.1
+[✓] ACTIVE SINKHOLE: *.intruder.internal -> 127.0.0.1
+[AUDIT] Committed forensic evidence entry to /var/log/sinkhole_audit.log
+^CProcess Process-2:
+
+[*] Stopping pipeline...
+Traceback (most recent call last):
+[*] Pipeline shutdown complete.
+Process Process-1:

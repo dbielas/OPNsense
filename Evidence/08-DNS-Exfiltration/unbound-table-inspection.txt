@@ -1,0 +1,5 @@
+hybrid.lan.     3600    IN      A       127.0.0.1
+localhost.internal.     3600    IN      A       127.0.0.1
+intruder.internal.      3600    IN      A       127.0.0.1
+attacker-c2.internal.   3600    IN      A       127.0.0.1
+localhost.      10800   IN      A       127.0.0.1

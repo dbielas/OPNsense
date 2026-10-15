@@ -1,0 +1,44 @@
+{
+  "timestamp": "2026-10-14T23:35:31.601145+0000",
+  "flow_id": 1046843746560379,
+  "in_iface": "em3",
+  "event_type": "dns",
+  "src_ip": "192.168.20.1",
+  "src_port": 53,
+  "dest_ip": "192.168.20.75",
+  "dest_port": 55718,
+  "proto": "UDP",
+  "ip_v": 4,
+  "pkt_src": "wire/pcap",
+  "dns": {
+    "version": 3,
+    "type": "response",
+    "tx_id": 1,
+    "id": 57131,
+    "flags": "8180",
+    "qr": true,
+    "rd": true,
+    "ra": true,
+    "opcode": 0,
+    "rcode": "NOERROR",
+    "queries": [
+      {
+        "rrname": "x.com",
+        "rrtype": "A"
+      }
+    ],
+    "answers": [
+      {
+        "rrname": "x.com",
+        "rrtype": "A",
+        "ttl": 300,
+        "rdata": "162.159.140.229"
+      }
+    ],
+    "grouped": {
+      "A": [
+        "162.159.140.229"
+      ]
+    }
+  }
+}
