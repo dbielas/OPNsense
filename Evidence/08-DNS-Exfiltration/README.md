@@ -30,7 +30,7 @@ This directory contains end-to-end evidence validating the deployment, signal he
 | **06. Apex Debounce Suppression** | Python Sieve | `sieve-debounce-burst.log` | Ingested secondary query burst for `intruder.internal`; confirmed in-flight suppression within 30-second TTL window. |
 | **07. OpenRouter Model Verdict** | Python Arbiter | `arbiter-decision-response.json` | Dispatched context payload to `inception/mercury-decide:free`; returned P(Exfil) = 0.9890 in 348.3ms. |
 | **08. Unbound Socket Mitigation** | Unbound Resolver | `unbound-containment-exec.txt` | Executed `local_zone redirect` and `local_data A 127.0.0.1` via `unbound-control`. |
-| **09. Unbound Zone Table State** | Unbound Resolver | `unbound-table-inspection.txt` | Executed `list_local_zones` and `list_local_data`; confirmed volatile redirect entry for target apex. |
+| **09. Unbound Zone Table State** | Unbound Resolver | `unbound-table-inspection.txt` | Executed `unbound-control list_local_data \| grep 127.0.0.1`; confirmed volatile redirect entry for target apex. |
 | **10. Client Containment Test** | Workstation (192.168.20.75) | `client-resolution-verify.txt` | Resolved `stage2-c2.intruder.internal` returning `127.0.0.1`, while benign internet lookups resolved cleanly. |
 | **11. Forensic Audit Trail** | Edge Filesystem | `sinkhole-audit.log` | Validated JSON forensic record committed to `/var/log/sinkhole_audit.log` with timestamp, client IP, heuristics, and model confidence. |
 
