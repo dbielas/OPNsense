@@ -24,9 +24,9 @@ This directory contains end-to-end evidence validating the deployment, signal he
 |---|---|---|---|
 | **01. Volatile RAM Disk Mount** | FreeBSD / OPNsense | [mount-ramdisk-status](./mount-ramdisk-status.txt) | Executed `mount -t tmpfs`; confirmed 64MB volatile storage mounted at `/tmp/ramdisk` with zero persistent flash writes. |
 | **02. Suricata Telemetry Tap** | Suricata Engine | [suricata-eve-dns-sample](./suricata-eve-dns-sample.json) | Captured raw Suricata v3 EVE DNS queries; confirmed request-only logging to `/tmp/ramdisk/eve-dns.json` without response overhead. |
-| **03. Benign Query Filtering** | Python Sieve | [sieve-benign-traffic](./sieve-benign-traffic.log) | Evaluated normal queries (`_dmarc`, compound hostnames with >= 2 hyphens); confirmed immediate bypass without Arbiter queuing. |
-| **04. Standard A/AAAA Flagging** | Python Sieve | [sieve-anomaly-standard](./sieve-anomaly-standard.log) | Caught 27-char payload `Q09ORklERU5USUFMX1BBWVJPTEw` at H = 4.357; satisfied standard gates (Len >= 20, H >= 4.15). |
-| **05. TXT Tunneling Flagging** | Python Sieve | [sieve-anomaly-txt](./sieve-anomaly-txt.log) | Caught 32-char payload at H = 4.289 on `TXT` record; satisfied relaxed tunneling gates (Len >= 16, H >= 3.80). |
+| **03. Benign Query Filtering** | Python Sieve | [sieve-benign-traffic](./sieve-benign-traffic.txt) | Evaluated normal queries (`_dmarc`, compound hostnames with >= 2 hyphens); confirmed immediate bypass without Arbiter queuing. |
+| **04. Standard A/AAAA Flagging** | Python Sieve | [sieve-anomaly-standard](./sieve-anomaly-standard.txt) | Caught 27-char payload `Q09ORklERU5USUFMX1BBWVJPTEw` at H = 4.357; satisfied standard gates (Len >= 20, H >= 4.15). |
+| **05. TXT Tunneling Flagging** | Python Sieve | [sieve-anomaly-txt](./sieve-anomaly-txt.txt) | Caught 32-char payload at H = 4.289 on `TXT` record; satisfied relaxed tunneling gates (Len >= 16, H >= 3.80). |
 | **06. Apex Debounce Suppression** | Python Sieve | [sieve-debounce-burst](./sieve-debounce-burst.log) | Ingested secondary query burst for `intruder.internal`; confirmed in-flight suppression within 30-second TTL window. |
 | **07. OpenRouter Model Verdict** | Python Arbiter | [arbiter-decision-response](./arbiter-decision-response.json) | Dispatched context payload to `inception/mercury-decide:free`; returned P(Exfil) = 0.9890 in 348.3ms. |
 | **08. Unbound Socket Mitigation** | Python Arbiter | [unbound-containment-exec](./unbound-containment-exec.txt) | Executed `local_zone redirect` and `local_data A 127.0.0.1` via Arbiter. |
