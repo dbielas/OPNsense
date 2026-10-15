@@ -1,1 +1,23 @@
-{"timestamp": "2026-10-15T22:39:18.053934+00:00", "action": "SINKHOLE_APPLIED", "client_ip": "192.168.20.75", "apex_domain": "intruder.internal", "trigger_qname": "GirQUXElwOVu4MLVRKHCMXzt72BFHahj.intruder.internal", "rrtype": "TXT", "trigger_label": "GirQUXElwOVu4MLVRKHCMXzt72BFHahj", "heuristics": {"label_length": 32, "shannon_entropy": 4.75}, "arbiter": {"mode": "openrouter_api", "model": "inception/mercury-decide:free", "decision": "is_dns_exfil", "probability": 0.9890130574807263}, "containment": {"mechanism": "unbound-control local_zone redirect", "sinkhole_target": "127.0.0.1"}}
+{
+  "timestamp": "2026-10-15T22:39:18.053934+00:00",
+  "action": "SINKHOLE_APPLIED",
+  "client_ip": "192.168.20.75",
+  "apex_domain": "intruder.internal",
+  "trigger_qname": "GirQUXElwOVu4MLVRKHCMXzt72BFHahj.intruder.internal",
+  "rrtype": "TXT",
+  "trigger_label": "GirQUXElwOVu4MLVRKHCMXzt72BFHahj",
+  "heuristics": {
+    "label_length": 32,
+    "shannon_entropy": 4.75
+  },
+  "arbiter": {
+    "mode": "openrouter_api",
+    "model": "inception/mercury-decide:free",
+    "decision": "is_dns_exfil",
+    "probability": 0.9890130574807263
+  },
+  "containment": {
+    "mechanism": "unbound-control local_zone redirect",
+    "sinkhole_target": "127.0.0.1"
+  }
+}
