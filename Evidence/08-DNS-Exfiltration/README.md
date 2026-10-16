@@ -38,6 +38,29 @@ This directory contains end-to-end evidence validating the deployment, signal he
 
 ## 3. Deep-Dive Analysis: Pipeline Architecture & Arbitration Logic
 
+### Active Directory DNS Integration & Flow Topology
+
+In this deployment, LAN firewall rules enforce centralized enterprise DNS architecture: internal workstations are permitted to query only the Active Directory Domain Controller, and direct outbound UDP/TCP port 53 to WAN is blocked.
+
+```text
+Production Resolution Architecture:
+[Workstation: 192.168.20.50]
+         │ (LAN Rule: Port 53 Allowed)
+         ▼
+[AD Domain Controller / DNS] ──── Authoritative for Internal Forest & SRV
+         │
+         │ (DNS Forwarder: Non-Authoritative / External)
+         ▼
+[OPNsense Gateway: 192.168.20.1]
+   ├── Suricata v3 EVE DNS Tap (/tmp/ramdisk/eve-dns.json)
+   ├── Sieve (Process 1) & Arbiter (Process 2)
+   └── Unbound Resolver (Sinkhole Target: 127.0.0.1)
+```
+
+#### Containment Propagation
+
+When the Arbiter executes dynamic containment via `unbound-control local_zone <apex> redirect`, Unbound begins answering external queries for that root domain with `127.0.0.1`. The AD DNS forwarder receives this poisoned record and caches it, propagating the sinkhole to all domain-joined endpoints querying the DC.
+
 ### Multi-Process Pipeline Topology
 The pipeline runs two decoupled worker processes communicating over an in-memory queue (`multiprocessing.Queue`) to maintain wire-speed processing:
 * **The Sieve (Process 1):** Attaches to the active EVE JSON stream in `/tmp/ramdisk/eve-dns.json`. Calculates Shannon entropy $H(X)$, evaluates label length, strips RFC metadata prefixes (`_dmarc`, `_domainkey`), drops hyphenated cloud infrastructure hostnames, and runs an LRU debounce cache to suppress burst queries.
