@@ -66,6 +66,14 @@ The pipeline runs two decoupled worker processes communicating over an in-memory
 * **The Sieve (Process 1):** Attaches to the active EVE JSON stream in `/tmp/ramdisk/eve-dns.json`. Calculates Shannon entropy $H(X)$, evaluates label length, strips RFC metadata prefixes (`_dmarc`, `_domainkey`), drops hyphenated cloud infrastructure hostnames, and runs an LRU debounce cache to suppress burst queries.
 * **The Arbiter (Process 2):** Consumes flagged candidate frames. Compiles query telemetry, sends structured decision payloads to OpenRouter (`inception/mercury-decide:free`), parses single-value confidence probabilities **P(Exfil) >= 0.75**, and executes dynamic sinkholing commands via `unbound-control`.
 
+### Telemetry Source Rationale: Suricata EVE vs. Unbound dnstap
+
+While `dnstap` provides native, high-performance query logging directly from resolver software, Suricata v3 EVE DNS streaming was chosen for the telemetry tap based on three architectural requirements:
+
+* **OPNsense Package Portability:** The base FreeBSD Unbound package and OPNsense GUI template engine do not include `libfstrm` or `libprotobuf-c` compilation flags by default. Utilizing Suricata avoids custom binary rebuilds, maintaining complete compatibility with standard OPNsense firmware updates.
+* **Wire-Level Visibility vs. Daemon Scoping:** `dnstap` captures only transactions that successfully reach the Unbound daemon socket. Suricata inspects raw frames at Layer 3/4 on the interface, providing packet-layer visibility over all outbound port 53 traffic—including any rogue or hardcoded client DNS lookups attempting to bypass the local resolver.
+* **Zero-Dependency In-Memory Ingestion:** `dnstap` emits binary Frame Streams requiring protobuf deserialization in the consumer process. Suricata streams newline-delimited JSON directly to volatile memory (`/tmp/ramdisk/eve-dns.json`), allowing the Sieve to tail and decode records without external C-extensions, sockets, or binary protocol parsing overhead.
+* **Resolver Performance Decoupling:** Logging remains strictly passive and decoupled from the Unbound process tree, preventing IPC socket backpressure or buffer exhaustion from impacting production resolver latency.
 
 ### Dual-Path Detection Heuristics
 Because attacker tradecraft differs between high-volume IP address lookups and data-dense tunneling protocols (`dnscat2`, `iodine`), the Sieve implements differentiated gating logic:
