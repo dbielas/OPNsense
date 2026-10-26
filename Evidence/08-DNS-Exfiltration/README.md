@@ -98,6 +98,21 @@ unbound-control -c /var/unbound/unbound.conf local_zone intruder.internal redire
 unbound-control -c /var/unbound/unbound.conf local_data "intruder.internal A 127.0.0.1"
 
 ```
+### Architectural Decision: Sinkhole Target Selection (`0.0.0.0` vs. `127.0.0.1` vs. `NXDOMAIN`)
+
+During initial pipeline prototyping, `127.0.0.1` was utilized as the synthetic target based on traditional hosts-file conventions. Production hardening led to the formal deprecation of `127.0.0.1` in favor of `0.0.0.0` based on the following evaluation:
+
+| Target | Mechanism | Protocol Behavior | Endpoint Failure Mode / Risk | Verdict |
+|---|---|---|---|---|
+| **`127.0.0.1`** | Loopback Address | Synthetic `A` record returned (`NOERROR`) | **Local Port Collision:** Client processes attempt TCP handshakes against services bound to `127.0.0.1` on the local machine (e.g., WinRM, local dev servers, IIS). | **Deprecated** |
+| **`NXDOMAIN`** | Error RCODE 3 | Non-existent domain response | **Evasion Trigger & Negative TTL:** Stored under client `MaxNegativeCacheTtl` (volatile); signals takedown to sophisticated C2/DGA agents, prompting immediate channel rotation. | **Rejected for C2** |
+| **`0.0.0.0`** | Non-Routable Meta-Address | Synthetic `A` record returned (`NOERROR`) with 3600s TTL | **Immediate Kernel Drop:** Host network stack (`tcpip.sys`) rejects socket creation immediately (`WSAEADDRNOTAVAIL`). Zero network traffic, zero port collisions, high cache retention. | **Selected Standard** |
+
+#### Why `0.0.0.0` Over `127.0.0.1`
+When an infected endpoint queries an exfiltration apex that has been sinkholed, malware beaconing threads immediately attempt an egress handshake (typically over port 80, 443, or 8080). 
+* Mapping to `127.0.0.1` forces the client kernel to route the SYN packet to its own loopback adapter. If the endpoint hosts administrative daemons or container runtimes on those ports, it triggers unintended local service interaction.
+* Mapping to `0.0.0.0` instructs the local socket layer that the target is unroutable. The connection fails instantly at the socket creation phase without generating loopback traffic or application interference.
+  
 ## 4. Test Harness & Reproduction Commands
 
 ### Benign Baseline Verification
