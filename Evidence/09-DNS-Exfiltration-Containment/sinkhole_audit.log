@@ -18,6 +18,6 @@
   },
   "containment": {
     "mechanism": "unbound-control local_zone redirect",
-    "sinkhole_target": "127.0.0.1"
+    "sinkhole_target": "0.0.0.0"
   }
 }
