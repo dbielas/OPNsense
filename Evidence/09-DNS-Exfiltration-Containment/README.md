@@ -5,10 +5,8 @@ This directory contains end-to-end technical evidence, Detection-as-Code (DaC) s
 
 It specifically addresses and resolves the **DNS Forwarder Blind Spot** inherent to Active Directory enterprise topologies: when internal endpoints send queries to Domain Controllers that forward requests upstream, edge security appliances (OPNsense) observe only the Domain Controller (`192.168.20.75`) as the source IP. By correlating high-entropy edge sinkhole logs (`sinkhole_audit.log`) with Domain Controller query logs (`dns.log`) across an in-memory temporal join, this pipeline isolates the patient-zero workstation (`WRKSTN-01` at `192.168.20.50`) and provisions automated wire suppression alongside gated Layer 3 kernel containment via FreeBSD `pfctl`.
 
-### The Enterprise Target State
 In a mature SOC, perimeter sinkholes and Windows DNS query events are continuously streamed to a cloud SIEM (e.g., Microsoft Sentinel via Azure Monitor Agent). Ingestion rules normalize the telemetry into standardized tables, where scheduled KQL analytics rules correlate the events and trigger automated SOAR playbooks to isolate endpoints via firewall REST APIs.
 
-### The Edge / Resource-Constrained PoC
 Many operational environments—such as branch offices, air-gapped enclaves, or budget-constrained enterprise edge sites—cannot justify the substantial compute, network bandwidth, and cloud ingestion billing associated with streaming high-volume DNS logs to a centralized SIEM.
 
 This repository provides a self-contained, Detection-as-Code Proof of Concept that:
