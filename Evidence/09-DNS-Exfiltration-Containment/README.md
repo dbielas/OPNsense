@@ -34,8 +34,7 @@ This repository provides a self-contained, Detection-as-Code Proof of Concept th
 | **01. Perimeter Exfil Interception** | `OPNsense` | [sinkhole-audit](./sinkhole-audit.log) | LLM Arbiter scored query payload (`v8x9k2m4...exfil-test.internal`) with Shannon Entropy $H = 4.625$ and exfil probability $P = 0.88$; sinkholed apex to `127.0.0.1`. |
 | **02. DC Inbound Telemetry Capture** | `DC01` | [dns-debug-extract](./dns-debug-extract.txt) | Captured raw wire packet `UDP Rcv 192.168.20.50` requesting the encoded label before recursive forwarding to gateway. |
 | **03. Cloud Detection Rule (KQL)** | KQL | [kql-correlation.kql](./kql-correlation.kql) | Production Detection-as-Code specification executing temporal inner join between `OPNsense_EVE_CL` and `DnsEvents`. |
-| **04. Local Correlation Engine** | `DC01` | [get-dcaudit-correlation](./get-dcaudit-correlation.ps1) | Lightweight state-machine parser correlating JSONL audit records with split-line text logs; attributed client `192.168.20.50`. |
-| **05. Kernel Layer 3 Quarantine** | `OPNsense` | [pf-quarantine](./pf-quarantine.py) | Dynamic FreeBSD `pf` module adding target to in-memory table and executing state drop (`pfctl -k`) with zero reload overhead. |
+| **04. Kernel Layer 3 Quarantine** | `OPNsense` | [pf-quarantine](./pf-quarantine.py) | Dynamic FreeBSD `pf` module adding target to in-memory table and executing state drop (`pfctl -k`) with zero reload overhead. |
 
 ---
 
