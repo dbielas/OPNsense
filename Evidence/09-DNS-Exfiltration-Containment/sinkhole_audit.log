@@ -1,0 +1,23 @@
+{
+  "timestamp": "2026-10-28T22:55:19.985540+00:00",
+  "action": "SIMULATED_SINKHOLE",
+  "client_ip": "192.168.20.75",
+  "apex_domain": "exfil-test.internal",
+  "trigger_qname": "v8x9k2m4p7q1z3w5y0a8c2e4g6j1l3n5.exfil-test.internal",
+  "rrtype": "A",
+  "trigger_label": "v8x9k2m4p7q1z3w5y0a8c2e4g6j1l3n5",
+  "heuristics": {
+    "label_length": 32,
+    "shannon_entropy": 4.625
+  },
+  "arbiter": {
+    "mode": "dry_run",
+    "model": "inception/mercury-decide:free",
+    "decision": "is_dns_exfil",
+    "probability": 0.88
+  },
+  "containment": {
+    "mechanism": "unbound-control local_zone redirect",
+    "sinkhole_target": "127.0.0.1"
+  }
+}
