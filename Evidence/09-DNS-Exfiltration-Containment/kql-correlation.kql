@@ -1,0 +1,40 @@
+// Title: Gateway Sinkhole to Internal Workstation Attribution
+// Tactics: Exfiltration (TA0010), Command and Control (TA0011)
+// Techniques: T1071.004, T1048.003
+let lookback = 15m;
+let time_tolerance = 60s;
+
+// 1. Extract perimeter sinkhole alerts from OPNsense
+let GatewaySinkholes = OPNsense_EVE_CL
+    | where TimeGenerated >= ago(lookback)
+    | extend EventData = parse_json(Message)
+    | where EventData.action in ("SIMULATED_SINKHOLE", "SINKHOLE_APPLIED")
+    | project 
+        GatewayTime = todatetime(EventData.timestamp),
+        ApexDomain = tolower(tostring(EventData.apex_domain)),
+        TriggerQName = tolower(tostring(EventData.trigger_qname)),
+        Probability = toreal(EventData.arbiter.probability),
+        Entropy = toreal(EventData.heuristics.shannon_entropy);
+
+// 2. Ingest internal workstation query events from DC01
+let DCQueryLogs = DnsEvents
+    | where TimeGenerated >= ago(lookback)
+    | where EventId == 246 or SubType == "LookupQuery"
+    | project 
+        DCTime = TimeGenerated, 
+        WorkstationIP = tostring(ClientIP), 
+        QueryName = tolower(Name);
+
+// 3. Temporal inner join on apex domain match and temporal proximity
+DCQueryLogs
+| join kind=inner (GatewaySinkholes) on $left.QueryName has $right.ApexDomain
+| where abs(datetime_diff('second', DCTime, GatewayTime)) <= datetime_diff('second', now(), now() + time_tolerance)
+| summarize 
+    FirstSeen = min(DCTime),
+    LastSeen = max(DCTime),
+    TotalQueries = count(),
+    SampleQueries = make_set(QueryName, 5),
+    MaxEntropy = max(Entropy)
+    by WorkstationIP, ApexDomain, Probability
+| project FirstSeen, LastSeen, WorkstationIP, ApexDomain, Probability, MaxEntropy, TotalQueries, SampleQueries
+| order by Probability desc, TotalQueries desc
