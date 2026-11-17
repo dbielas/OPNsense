@@ -15,7 +15,7 @@ This directory documents the technical implementation and empirical validation o
 * **Custom Signature File:** `/var/db/clamav/custom_dlp.ndb`
 * **Custom Detection Rule:** `DLP.Outbound.RestrictedPII`
 * **Target Sensitive String:** `CONFIDENTIAL_PAYROLL` (Hex: `434f4e464944454e5449414c5f504159524f4c4c`)
-* **Trust Anchor Hierarchy:** `ADCS-Root-CA` $\rightarrow$ `OPNsense-SubCA-Authority` (Installed in Windows Local Machine Store)
+* **Trust Anchor Hierarchy:** `hybrid-DC01-CA` $\rightarrow$ `OPNsense Forward Proxy CA` (Installed in Windows Local Machine Store)
 
 ---
 
@@ -24,8 +24,8 @@ This directory documents the technical implementation and empirical validation o
 | Step | Source System | Evidence File / Artifact | Key Findings |
 | --- | --- | --- | --- |
 | **01. Cleartext HTTP Benign POST** | `WRKSTN-01, Debian VM` | [http-benign-post-validation](./http-benign-post-validation.txt) | Executed `curl.exe` over plain HTTP (`:80`); received `200 OK`; Debian listener logged benign payload. |
-| **02. Cleartext HTTP DLP Block** | `WRKSTN-01, OPNsense` | [http-dlp-block-validation](./http-dlp-block-validation.txt) | Executed `curl.exe` containing `CONFIDENTIAL_PAYROLL`; received `403 Forbidden` (`ERR_SEC_ACCESS_DENIED`); 0 bytes reached listener. |
-| **03. TLS Handshake & Chain Verification** | `WRKSTN-01` | [openssl-tls-chain-validation](./openssl-tls-chain-validation.txt) | Verified dynamic leaf certificate generation signed by `OPNsense-SubCA-Authority` linking up to `ADCS-Root-CA` with valid `IP:10.0.2.25` SAN. |
+| **02. Cleartext HTTP DLP Block** | `WRKSTN-01, OPNsense` | [http-dlp-block-validation](./http-dlp-block-validation.txt) | Executed `curl.exe` containing `CONFIDENTIAL_PAYROLL`; received `403 Forbidden` (`Server: C-ICAP`); 0 bytes reached listener. |
+| **03. TLS Handshake & Chain Verification** | `WRKSTN-01` | [openssl-tls-chain-validation](./openssl-tls-chain-validation.txt) | Verified dynamic leaf certificate generation signed by `OPNsense Forward Proxy CA` linking up to `hybrid-DC01-CA` with valid `IP:10.0.2.25` SAN. |
 | **04. Encrypted HTTPS Benign POST** | `WRKSTN-01, Debian VM` | [https-ssl-bump-benign-post](./https-ssl-bump-benign-post.txt) | Transmitted encrypted POST via SSL-Bump; received `200 OK` with `Cache-Status: OPNsense.internal;detail=mismatch`; Debian logged 26-byte payload. |
 | **05. Encrypted HTTPS DLP Block** | `WRKSTN-01, OPNsense` | [https-dlp-encrypted-block](./https-dlp-encrypted-block.txt) | Transmitted encrypted POST containing `CONFIDENTIAL_PAYROLL`; Squid decrypted stream, C-ICAP tripped `DLP.Outbound.RestrictedPII`, returned `403 Forbidden`; 0 bytes leaked. |
 | **06. C-ICAP Virus Detection Log** | `OPNsense` | [cicap-virus-scan-log](./cicap-virus-scan-log.txt) | Inspected `/var/log/cicap/latest.log`; confirmed signature match `virus: DLP.Outbound.RestrictedPII` from client `192.168.10.50`. |
@@ -202,10 +202,13 @@ OK: TLS POST RECEIVED
 
 # 2. Encrypted Exfiltration Attempt
 HTTP/1.1 403 Forbidden
-Server: squid
-Mime-Version: 1.0
-Content-Type: text/html;charset=utf-8
-X-Squid-Error: ERR_SEC_ACCESS_DENIED 0
+Server: C-ICAP
+Content-Type: text/html
+Content-Language: en
+Date: Wed, 07 Oct 2026 22:20:50 GMT
+Cache-Status: OPNsense.internal
+Transfer-Encoding: chunked
+Connection: close
 
 ```
 
@@ -247,8 +250,8 @@ agent_id=102&status=online
 * **Remediation:** Sign the mock C2 certificate using the internal Sub-CA with a SAN extension (`subjectAltName = IP:10.0.2.25`), combine the Sub-CA and Root CA on Debian (`c2_fullchain.crt`), and instruct Squid to reference the authority bundle:
 ```squid
 sslproxy_cafile /var/squid/ssl/ca_bundle.pem
-sslproxy_cert_error allow all
-
+# Lab-only fallback if upstream uses an untrusted/self-signed cert:
+# sslproxy_cert_error allow all
 ```
 
 
@@ -258,5 +261,3 @@ sslproxy_cert_error allow all
 * **Symptom:** `curl.exe` POST requests are blocked (403), but browser form uploads pass uninspected.
 * **Root Cause:** Browsers transmit uploads as `multipart/form-data` or chunked streams. Default C-ICAP configuration only scans recognized archive/executable extensions, returning `204 No Content` for standard web-form parts.
 * **Remediation:** Set `virus_scan.DefaultMode scan` and configure `virus_scan.ScanFileTypes TEXT DATA EXECUTABLE ARCHIVE GRAPHICS ALL` in `/usr/local/etc/c-icap/virus_scan.conf`.
-
-```

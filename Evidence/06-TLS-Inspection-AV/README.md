@@ -10,12 +10,12 @@ This directory contains end-to-end evidence validating the dynamic detection, in
 
 * **Security Gateway:** `OPNsense.internal` (192.168.10.1) — FreeBSD / OPNsense Core
 * **Antivirus Scanning Daemon:** ClamAV (`clamd` v1.x)
-* **Adaptation Protocol Daemon:** C-ICAP (`c-icap` v0.5.x)
-* **ICAP Service Module:** `srv_clamav.so` (Service: `srv_clamav`)
+* **Adaptation Protocol Daemon:** C-ICAP (`c-icap` v0.6.x)
+* **ICAP Service Module:** `virus_scan.so` (Service: `virus_scan`, Alias: `srv_clamav`)
 * **Test Client Node:** `WRKSTN-01` (192.168.10.50) — Windows 11 Enterprise
-* **Test Malicious Signature:** EICAR Standard Anti-Virus Test File (`Eicar-Signature` / `Eicar-Test-Signature`)
+* **Test Malicious Signature:** EICAR Standard Anti-Virus Test File (`Eicar-Test-Signature`)
 * **HTTPS Intercepted:** `https://secure.eicar.org/eicar.com`
-* **Enforcement Behavior:** Complete downstream payload suppression; dynamic template injection (`VIRUS FOUND`)
+* **Enforcement Behavior:** Complete downstream payload suppression; dynamic template injection (`MALWARE FOUND`)
 
 ---
 
@@ -23,11 +23,11 @@ This directory contains end-to-end evidence validating the dynamic detection, in
 
 | Step | Source System | Evidence File / Artifact | Key Findings |
 | --- | --- | --- | --- |
-| **01. ClamAV Engine & Signature Status** | `OPNsense` | [clamav-engine-signatures](./clamav-engine-signatures.txt) | Inspected `freshclam` and `clamd` logs; confirmed active signatures database (`daily.cvd`, `main.cvd`) loaded in RAM. |
+| **01. ClamAV Engine & Signature Status** | `OPNsense` | [clamav-engine-signatures](./clamav-engine-signatures.txt) | Inspected `freshclam` and `clamd` logs; confirmed active signatures database (`daily.cld`, `main.cvd`, `bytecode.cvd`) loaded in RAM. |
 | **02. C-ICAP Service Socket & Module Binding** | `OPNsense` | [cicap-service-socket](./cicap-service-socket.txt) | Executed `sockstat -4 -l \| grep c-icap`; verified daemon bound to `127.0.0.1:1344` with module `virus_scan` loaded. |
-| **03. Proxy-to-ICAP Adaptation Plumbing** | `OPNsense` | [squid-icap-config](./squid-icap-config.txt) | Inspected Squid ICAP directives; validated `icap_enable on`, `adaptation_access`, and response mode `icap_service service_avi_resp respmod_precache`. |
+| **03. Proxy-to-ICAP Adaptation Plumbing** | `OPNsense` | [squid-icap-config](./squid-icap-config.txt) | Inspected Squid ICAP directives; validated `icap_enable on`, `adaptation_access`, and response mode `icap_service response_mod respmod_precache icap://127.0.0.1:1344/virus_scan`. |
 | **04. Malicious Payload Suppression (Client)** | `WRKSTN-01` | [client-eicar-suppression](./client-eicar-suppression.txt) | Executed `curl.exe -i --ssl-no-revoke https://secure.eicar.org/eicar.com` against EICAR endpoint; confirmed zero signature bytes written to disk and HTTP `403 Forbidden` received. |
-| **05. C-ICAP In-Memory Detection Telemetry** | `OPNsense` | [cicap-detection-log](./cicap-detection-log.txt) | Inspected  `/var/log/c-icap/access.log`; verified `VIRUS DETECTED: Eicar-Test-Signature` trigger. |
+| **05. C-ICAP In-Memory Detection Telemetry** | `OPNsense` | [cicap-detection-log](./cicap-detection-log.txt) | Inspected `/var/log/cicap/cicap_20260930.log` and `cicap_20261001.log`; verified `VIRUS DETECTED: Eicar-Test-Signature` trigger. |
 | **06. Proxy Enforcement & Block Page Delivery** | `OPNsense` | [squid-antivirus-block-log](./squid-antivirus-block-log.txt) | Verified `access.log` logged `TCP_MISS/403` with C-ICAP block template size rather than EICAR raw payload delivery. |
 
 ---
@@ -65,14 +65,14 @@ Squid intercepts the HTTP response body before sending it downstream to the clie
 
 * **Decryption Hand-Off:** Squid decrypts the incoming TLS stream from the origin server directly into RAM buffers.
 * **Shared Memory Interprocess Streaming:** Instead of writing files to disk, Squid pipes the unencrypted bytes over `127.0.0.1:1344` to the C-ICAP service worker processes.
-* **Scan Interception:** The `srv_clamav` plugin sends chunks to `clamd` via local UNIX domain sockets (`/var/run/clamav/clamd.sock`).
+* **Scan Interception:** The `virus_scan` plugin (via `clamd_mod.so`) streams chunks to `clamd` over loopback TCP (`127.0.0.1:3310`).
 
 ### Threat Remediation & Downstream Injection
 
 If the payload matches a known threat pattern:
 
 1. **Stream Severing:** C-ICAP immediately terminates buffering of the upstream payload. The rest of the upstream stream is discarded.
-2. **Payload Replacement:** C-ICAP alters the HTTP response status header from `200 OK` to `403 Forbidden` and substitutes the response body with an administrative infection warning template (`VIRUS FOUND: Eicar-Test-Signature`).
+2. **Payload Replacement:** C-ICAP alters the HTTP response status header from `200 OK` to `403 Forbidden` and substitutes the response body with an administrative infection warning template (`MALWARE FOUND` — `Eicar-Test-Signature`).
 3. **Downstream Delivery:** Squid encrypts the warning page using the dynamic synthetic certificate and delivers it to `WRKSTN-01`. The workstation operating system and browser never ingest or write the malicious binary strings.
 
 ### Payload Interception Validation Script
@@ -87,8 +87,9 @@ $evidenceFile = Join-Path $evidenceDirectory "client-eicar-suppression.txt";
 if (-not (Test-Path $evidenceDirectory)) { New-Item -ItemType Directory -Path $evidenceDirectory -Force | Out-Null };
 
 $rawOutput = & curl.exe --ssl-no-revoke -s -S -i -w "`n%{http_code}" $target;
-$lines =$rawOutput -split "`r?`n";
-$statusCode = $lines[-1].Trim();$responseContent = ($lines[0..($lines.Length - 2)]) -join "`r`n";
+$lines = $rawOutput -split "`r?`n";
+$statusCode = $lines[-1].Trim();
+$responseContent = ($lines[0..($lines.Length - 2)]) -join "`r`n";
 
 if ($statusCode -eq "403") {
 @"
@@ -145,7 +146,7 @@ kernel: pid XXXX (clamd), jid 0, uid 106: exited on signal 9 (terminated)
 * **Remediation:** Configure `freshclam` updates to execute during maintenance windows and tune Squid's ICAP service bypass directives:
 ```text
 icap_service_failure_limit 10 in 60
-bypass on
+icap_service response_mod respmod_precache bypass=1 icap://127.0.0.1:1344/virus_scan
 
 ```
 
@@ -155,9 +156,10 @@ bypass on
 
 If C-ICAP stops processing streams or the AV engine freezes, run this recovery sequence from the OPNsense shell:
 
-1. **Verify ClamAV Daemon Socket:**
+1. **Verify ClamAV Daemon Socket & TCP Listener:**
 ```sh
 ls -l /var/run/clamav/clamd.sock
+sockstat -4 -l | grep 3310
 
 ```
 
@@ -172,6 +174,6 @@ configctl cicap restart
 
 3. **Validate Real-Time Scanner Log Hook:**
 ```sh
-tail -f /var/log/c-icap/server.log
+tail -f /var/log/cicap/latest.log
 
 ```
