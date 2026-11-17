@@ -23,10 +23,10 @@ This directory contains end-to-end evidence validating the configuration, interc
 | Step | Source System | Evidence File / Artifact | Key Findings |
 | --- | --- | --- | --- |
 | **01. AD CS Subordinate Issuance & Installation** | `DC01` / `OPNsense` | [adcs-subca-issuance](./adcs-subca-issuance.txt) | Subordinate CA CSR issued by `DC01` (`SubCA` template); verified active certificate and private key installed in OPNsense under `/var/squid/ssl`, matching the active serial number and SHA1 hash bound to Squid. |
-| **02. Proxy Listener Verification** | `OPNsense` | [squid-socket-status](./squid-socket-status.txt) | Executed sockstat -4 -l \| grep squid; verified Squid listening on `127.0.0.1:3128` (HTTP) and `127.0.0.1:3129` (HTTPS SSL-Bump). |
-| **03. PF Redirect Rule Validation** | `OPNsense` | [pf-nat-rules](./pf-nat-rules.txt) | Inspected `/tmp/rules.debug` via `pfctl -sn`; confirmed port forward rule steering TCP 443 from `192.168.10.0/24` to `127.0.0.1:3129`. |
+| **02. Proxy Listener Verification** | `OPNsense` | [squid-socket-status](./squid-socket-status.txt) | Executed `sockstat -4 -l \| grep squid`; verified Squid listening on `127.0.0.1:3128` (HTTP) and `127.0.0.1:3129` (HTTPS SSL-Bump). |
+| **03. PF Redirect Rule Validation** | `OPNsense` | [pf-nat-rules](./pf-nat-rules.txt) | Inspected active PF NAT rules via `pfctl -sn`; confirmed port forward rule steering TCP 443 from `192.168.10.0/24` to `127.0.0.1:3129`. |
 | **04. Domain Trust Inheritance Check** | `WRKSTN-01` | [cert-trust-verification](./cert-trust-verification.txt) | Executed `Get-ChildItem Cert:\LocalMachine\Root`; confirmed domain-joined trust inheritance from AD CS without manual endpoint provisioning. |
-| **05. Decryption & Leaf Forgery Check** | `WRKSTN-01` | [tls-leaf-cert-inspect](./tls-leaf-cert-inspect.txt) | Queried remote TLS endpoint in PowerShell; confirmed leaf certificate issuer reflects chained `CN=OPNsense-SubCA-Authority` with zero browser/OS warnings. |
+| **05. Decryption & Leaf Forgery Check** | `WRKSTN-01` | [tls-leaf-cert-inspect](./tls-leaf-cert-inspect.txt) | Queried remote TLS endpoint in PowerShell; confirmed leaf certificate issuer reflects chained `CN=OPNsense Forward Proxy CA, C=NL` with zero browser/OS warnings. |
 | **06. Plaintext Access Log Audit** | `OPNsense` | [squid-access-logs](./squid-access-logs.txt) | Monitored `/var/log/squid/access.log`; validated full URI logging (path and query strings) rather than opaque `CONNECT` tunnels. |
 
 ---
@@ -105,7 +105,7 @@ $x509 = New-Object System.Security.Cryptography.X509Certificates.X509Certificate
 Rather than deploying an untrusted self-signed root authority requiring manual distribution to every client, OPNsense operates as an intermediate Subordinate CA subordinate to an internal Active Directory Certificate Services (AD CS) hierarchy:
 
 1. **CSR Generation on OPNsense:**
-* A Certificate Signing Request (CSR) is generated under **System $\rightarrow$ Trust $\rightarrow$ Authorities** with the Common Name `OPNsense-SubCA-Authority`.
+* A Certificate Signing Request (CSR) is generated under **System $\rightarrow$ Trust $\rightarrow$ Authorities** with the Common Name `OPNsense Forward Proxy CA` (described locally as `OPNsense-SubCA-Authority`).
 * Key usage is explicitly restricted to `Certificate Signing` and `CRL Signing` with CA Basic Constraints enabled (`IsCA=True`).
 
 

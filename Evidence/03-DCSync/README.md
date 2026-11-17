@@ -49,19 +49,10 @@ hybrid.lan\krbtgt:502:aad3b435b51404eeaad3b435b51404ee:b308e01869e9a2631526487e4
 ### Windows Security Event ID 4662 Breakdown
 
 * **Event ID:** 4662 (Directory Service Access)
-
-
 * **Time Created:** `9/16/2026 2:56:42 PM MST`
-
 * **Subject Account:** `HYBRID\asrep_user` (Logon ID `0xA9D937`)
-
-
 * **Access Mask:** `0x100` (Control Access / Extended Right)
-
-
 * **Properties Flag:** `{1131f6ad-9c07-11d1-f79f-00c04fc2dcd2}` (`DS-Replication-Get-Changes-All`)
-
-
 
 Because `DS-Replication-Get-Changes-All` overrides directory attribute filtering to stream password hashes and Kerberos keys across the wire, invoking this GUID from a standard user security context is an authoritative host-level indicator of DCSync.
 
@@ -75,15 +66,14 @@ Out-of-the-box Intrusion Detection Systems (IDS) frequently miss DCSync attacks 
 To engineer a high-fidelity detection, a custom Suricata rule was deployed on the OPNsense boundary firewall. The detection rationale hinges on network location context: **a client workstation or untrusted subnet has zero legitimate operational reason to ever initiate an Active Directory replication bind.** By explicitly scoping the source address to the client subnet (`192.168.10.0/24`), the rule avoids production noise entirely. Any trigger from this zone represents a near 100% confidence indicator of malicious replication impersonation.
 
 ```suricata
-alert tcp 192.168.10.0/24 any -> 192.168.20.75 any (
-    msg:"ATTACK-CHAIN - Client Subnet DRSUAPI RPC Bind Detected (DCSync)";
-    flow:to_server,established;
-    content:"|35 42 51 e3 06 4b d1 11 ab 04 00 c0 4f c2 dc d2|";
-    classtype:attempted-admin;
-    sid:1000100;
-    rev:6;
+alert tcp 192.168.10.0/24 any -> 192.168.20.75 any ( \
+    msg:"ATTACK-CHAIN - Client Subnet DRSUAPI RPC Bind Detected (DCSync)"; \
+    flow:to_server,established; \
+    content:"|35 42 51 e3 06 4b d1 11 ab 04 00 c0 4f c2 dc d2|"; \
+    classtype:attempted-admin; \
+    sid:1000100; \
+    rev:6; \
 )
-
 ```
 
 ### Two-Stage MSRPC Flow Analysis
@@ -91,11 +81,7 @@ alert tcp 192.168.10.0/24 any -> 192.168.20.75 any (
 Replication requests across the boundary negotiate an Endpoint Mapper resolution followed by dynamic RPC data streaming:
 
 1. **Endpoint Resolution (TCP 135):** The client binds to EPMapper on TCP 135 to resolve the dynamic listening port registered to the DRSUAPI UUID.
-
-
 2. **Replication Stream (High Port TCP 49683):** The client establishes a direct TCP session to `49683`, executing `DsGetNCChanges`. The asymmetric byte distribution (`2,208 bytes` sent vs. `6,860 bytes` returned) reflects secret retrieval from the directory.
-
-
 
 ### Correlated Suricata Alert Payload (`eve.json`)
 
@@ -166,7 +152,7 @@ Because the `krbtgt` password hash (`b308e018...`) permits arbitrary Golden Tick
 
 1. **First Reset:** Reset the `krbtgt` account password via administrative tooling or script to force secondary key generation.
 2. **Replication Interval:** Maintain a mandatory holding window (minimum 10 hours) to allow valid Kerberos tickets to expire naturally across the domain topology.
-3. **Second Reset:** Execute the final `krbtgt` password reset to flush the previous key out of the `pwdLastSet` history window.
+3. **Second Reset:** Execute the final `krbtgt` password reset to flush the previous key out of the `krbtgt` password/key history (`msDS-KeyVersionNumber` / `supplementalCredentials`).
 
 ### 3. Network Boundary Segmentation & Inline IPS Prevention
 
@@ -179,15 +165,14 @@ Enforce microsegmentation policies at the firewall layer:
 To actively prevent DCSync attacks on the wire before Active Directory can process the replication bind, the custom Suricata NIDS rule was transitioned to inline Netmap IPS mode by changing the action from `alert` to `drop`:
 
 ```suricata
-drop tcp 192.168.10.0/24 any -> 192.168.20.75 any (
-    msg:"ATTACK-CHAIN - Client Subnet DRSUAPI RPC Bind Detected (DCSync)";
-    flow:to_server,established;
-    content:"|35 42 51 e3 06 4b d1 11 ab 04 00 c0 4f c2 dc d2|";
-    classtype:attempted-admin;
-    sid:1000100;
-    rev:6;
+drop tcp 192.168.10.0/24 any -> 192.168.20.75 any ( \
+    msg:"ATTACK-CHAIN - Client Subnet DRSUAPI RPC Bind Detected (DCSync)"; \
+    flow:to_server,established; \
+    content:"|35 42 51 e3 06 4b d1 11 ab 04 00 c0 4f c2 dc d2|"; \
+    classtype:attempted-admin; \
+    sid:1000100; \
+    rev:6; \
 )
-
 ```
 
 **IPS Block Verification (`eve.json`)**

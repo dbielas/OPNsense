@@ -37,8 +37,8 @@ Under RFC 4120, standard Kerberos authentication requires the client to encrypt 
 
 ### Dual-Layer Telemetry Correlation
 Detection is verified simultaneously across host and network layers:
-* **Endpoint Telemetry (`Event ID 4768`):** The Domain Controller Security Event Log records a TGT request where `Pre-Authentication Type` explicitly logs as `0` instead of standard Kerberos pre-auth (`15` or `19`), directly attributable to client IP `192.168.10.84`.
-* **Network NIDS Telemetry (`asrep_evidence.json`):** Suricata intercepts the TCP session across the internal transit bridge (`em1` to `em3`), decoding the Kerberos payload and raising an ET Open high-severity alert (`Category: Attempted Administrator Privilege Gain`) based on anomalous unauthenticated Kerberos formatting.
+* **Endpoint Telemetry (`Event ID 4768`):** The Domain Controller Security Event Log records a TGT request where `Pre-Authentication Type` explicitly logs as `0` instead of standard Kerberos pre-auth (`2`), directly attributable to client IP `192.168.10.84`.
+* **Network NIDS Telemetry (`asrep_evidence.json`):** Suricata intercepts the TCP session across the internal transit bridge (`em1` to `em3`), decoding the Kerberos payload and raising an ET Open high-severity alert (`SID 2019922`, `Category: Attempted Administrator Privilege Gain` — a legacy MS14-068/GoldenPac signature triggered here by the unauthenticated `AS-REQ`/`AS-REP` exchange on `88/tcp`).
 
 ---
 
@@ -80,6 +80,6 @@ The attack was successfully intercepted and dropped by the Active Directory Key 
 ```
 
 ### Architectural Root Cause
-Standard Python-based Kerberoasting tooling (such as `GetUserSPNs.py`) hardcodes the `TGS-REQ` to request legacy `etype 23` (RC4-HMAC) service tickets. This is done because RC4 hashes mathematically permit high-speed GPU dictionary attacks via MD4 algorithms (Hashcat mode `13100`), whereas modern AES tickets (Hashcat mode `19700`) are exponentially more resource-intensive to crack.
+Standard Python-based Kerberoasting tooling (such as `GetUserSPNs.py`) hardcodes the `TGS-REQ` to request legacy `etype 23` (RC4-HMAC) service tickets. This is done because RC4 hashes mathematically permit high-speed GPU dictionary attacks via RC4-HMAC / HMAC-MD5 keyed with the NTLM (MD4) hash (Hashcat mode `13100`), whereas modern AES tickets (Hashcat mode `19700`) are exponentially more resource-intensive to crack.
 
 In this environment, the Windows Server 2025 KDC enforces modern cryptographic standards and aligns with updated security baselines that restrict RC4 negotiation globally. Because Windows Server 2025 restricts implicit RC4 fallback, the KDC explicitly rejects the downgrade attempt, rendering standard legacy cracking vectors obsolete without requiring third-party endpoint intervention.

@@ -22,7 +22,7 @@ This directory contains end-to-end evidence validating the detection and forensi
 |---|---|---|---|
 | **01. Attack Execution & Ingest** | `kali` (Attacker) | [netexec-enumeration](./netexec-enumeration.jpg) | Executed NetExec enumeration via LDAPS; validated successful authentication as `asrep_user` and dumped 178 KB compressed BloodHound archive `DC01_192.168.20.75_2026-09-10_223152_bloodhound.zip`. |
 | **02. Transit Boundary Wire Telemetry** | `em1` (OPNsense) | [tcpdump-ldaps-burst](./tcpdump.txt) | Captured raw frame flow; confirmed bidirectional TCP handshake, TLS negotiation, and line-rate saturation of consecutive 1448-byte payload segments. |
-| **03. Network Sensor Detection** | Suricata (NIDS) | [eve-alert](./eve-alert.json) | Triggered Layer-4 signature `sid:1000099` (`LDAPS EGRESS HIT`); confirmed packet match on outbound DC response without relying on corrupted flow timers. |
+| **03. Network Sensor Detection** | Suricata (NIDS) | [eve-alert](./eve-alert.json) | Triggered Layer-4 signature `sid:1000099` (`LDAPS EGRESS HIT`); confirmed packet match on outbound DC response without relying on stateful flow tracking. |
 | **04. Host Diagnostic Telemetry** | `DC01` (Active Directory) | [LDAP-events](./events.txt) | Captured Directory Service Event ID 1644 entries; exposed exact LDAP search filters, target attributes (`nTSecurityDescriptor`, `member`, `adminCount`), and calling client socket `192.168.10.83:37023`. |
 
 ---
@@ -125,7 +125,7 @@ Message     : Internal event: A client issued a search operation with the follow
 ## 4. Operational Considerations & Diagnostic Baseline Runbook
 
 ### Sensor Flow Lifecycle Limitations
-When clients execute high-speed sweeps followed by connection resets (`Flags [R.]`), Suricata's flow management engine drops state tables before rate counters complete, frequently producing `APPLAYER_DETECT_PROTOCOL_ONLY_ONE_DIRECTION` diagnostics. Stateful in-rule filters (`threshold`, `detection_filter`) fail to increment across these short-lived flows, necessitating stateless payload inspections or external rate-limiting configurations (`threshold.config`).
+When clients execute high-speed sweeps followed by connection resets (`Flags [R.]`), Suricata's flow management engine drops state tables before bidirectional app-layer parsing completes, frequently producing `APPLAYER_DETECT_PROTOCOL_ONLY_ONE_DIRECTION` diagnostics. Stateful flow-dependent rules (`flow:established`) fail to match across these short-lived or reset flows, necessitating stateless Layer-4 packet inspection or external rate-limiting configurations (`threshold.config`).
 
 ### Diagnostic Configuration Protocol
 Windows Domain Controllers run with NTDS query logging disabled by default. Use the following PowerShell runbook to configure diagnostic collection during an assessment and safely revert the system afterward:
