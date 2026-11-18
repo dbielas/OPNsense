@@ -1,6 +1,7 @@
 // Title: Gateway Sinkhole to Internal Workstation Attribution
 // Tactics: Exfiltration (TA0010), Command and Control (TA0011)
 // Techniques: T1071.004, T1048.003
+// Note: Sentinel/Log Analytics PoC assuming DnsEvents ingestion (Windows DNS Analytical/connector or DCR-normalized dns.log)
 let lookback = 15m;
 let time_tolerance = 60s;
 
@@ -10,6 +11,7 @@ let GatewaySinkholes = OPNsense_EVE_CL
     | extend EventData = parse_json(Message)
     | where EventData.action in ("SIMULATED_SINKHOLE", "SINKHOLE_APPLIED")
     | project 
+        JoinKey = 1,
         GatewayTime = todatetime(EventData.timestamp),
         ApexDomain = tolower(tostring(EventData.apex_domain)),
         TriggerQName = tolower(tostring(EventData.trigger_qname)),
@@ -19,16 +21,18 @@ let GatewaySinkholes = OPNsense_EVE_CL
 // 2. Ingest internal workstation query events from DC01
 let DCQueryLogs = DnsEvents
     | where TimeGenerated >= ago(lookback)
-    | where EventId == 246 or SubType == "LookupQuery"
+    | where EventId == 256 or SubType == "LookupQuery"
     | project 
+        JoinKey = 1,
         DCTime = TimeGenerated, 
         WorkstationIP = tostring(ClientIP), 
-        QueryName = tolower(Name);
+        QueryName = trim_end(".", tolower(Name));
 
 // 3. Temporal inner join on apex domain match and temporal proximity
 DCQueryLogs
-| join kind=inner (GatewaySinkholes) on $left.QueryName has $right.ApexDomain
-| where abs(datetime_diff('second', DCTime, GatewayTime)) <= datetime_diff('second', now(), now() + time_tolerance)
+| join kind=inner (GatewaySinkholes) on JoinKey
+| where QueryName endswith strcat(".", ApexDomain) or QueryName == ApexDomain
+| where abs(datetime_diff('second', DCTime, GatewayTime)) <= (time_tolerance / 1s)
 | summarize 
     FirstSeen = min(DCTime),
     LastSeen = max(DCTime),

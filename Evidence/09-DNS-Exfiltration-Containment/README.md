@@ -31,7 +31,7 @@ This repository provides a self-contained, Detection-as-Code Proof of Concept th
 
 | Step | Source System | Evidence File / Artifact | Key Findings |
 |---|---|---|---|
-| **01. Perimeter Exfil Interception** | `OPNsense` | [sinkhole-audit](./sinkhole-audit.log) | LLM Arbiter scored query payload (`v8x9k2m4...exfil-test.internal`) with Shannon Entropy $H = 4.625$ and exfil probability $P = 0.88$; sinkholed apex to `127.0.0.1`. |
+| **01. Perimeter Exfil Interception** | `OPNsense` | [sinkhole-audit](./sinkhole-audit.log) | LLM Arbiter scored query payload (`v8x9k2m4...exfil-test.internal`) with Shannon Entropy $H = 4.625$ and exfil probability $P = 0.88$; sinkholed apex to `0.0.0.0`. |
 | **02. DC Inbound Telemetry Capture** | `DC01` | [dns-debug-extract](./dns-debug-extract.txt) | Captured raw wire packet `UDP Rcv 192.168.20.50` requesting the encoded label before recursive forwarding to gateway. |
 | **03. Cloud Detection Rule (KQL)** | KQL | [kql-correlation.kql](./kql-correlation.kql) | Production Detection-as-Code specification executing temporal inner join between `OPNsense_EVE_CL` and `DnsEvents`. |
 | **04. Kernel Layer 3 Quarantine** | `OPNsense` | [pf-quarantine](./pf-quarantine.py) | Dynamic FreeBSD `pf` module adding target to in-memory table and executing state drop (`pfctl -k`) with zero reload overhead. |
@@ -105,12 +105,13 @@ Because long, high-entropy labels exceed single-line buffer widths, Windows Serv
 ---
 
 ### Production KQL Correlation Rule (Microsoft Sentinel)
-The enterprise Detection-as-Code specification deploys to Log Analytics Workspace or Microsoft Sentinel, joining edge network logs with Windows event streams:
+For a cloud-SIEM deployment (Microsoft Sentinel / Log Analytics), the equivalent Detection-as-Code specification joins `OPNsense_EVE_CL` with `DnsEvents` (assuming Windows DNS Analytical/connector ingestion or a DCR normalizing `C:\DNSLogs\dns.log`):
 
 ```kusto
 // Title: Gateway Sinkhole to Internal Workstation Attribution
 // Tactics: Exfiltration (TA0010), Command and Control (TA0011)
 // Techniques: T1071.004, T1048.003
+// Note: Sentinel/Log Analytics PoC assuming DnsEvents ingestion (Windows DNS Analytical/connector or DCR-normalized dns.log)
 let lookback = 15m;
 let time_tolerance = 60s;
 
@@ -120,6 +121,7 @@ let GatewaySinkholes = OPNsense_EVE_CL
     | extend EventData = parse_json(Message)
     | where EventData.action in ("SIMULATED_SINKHOLE", "SINKHOLE_APPLIED")
     | project 
+        JoinKey = 1,
         GatewayTime = todatetime(EventData.timestamp),
         ApexDomain = tolower(tostring(EventData.apex_domain)),
         TriggerQName = tolower(tostring(EventData.trigger_qname)),
@@ -129,16 +131,18 @@ let GatewaySinkholes = OPNsense_EVE_CL
 // 2. Ingest internal workstation query events from DC01
 let DCQueryLogs = DnsEvents
     | where TimeGenerated >= ago(lookback)
-    | where EventId == 246 or SubType == "LookupQuery"
+    | where EventId == 256 or SubType == "LookupQuery"
     | project 
+        JoinKey = 1,
         DCTime = TimeGenerated, 
         WorkstationIP = tostring(ClientIP), 
-        QueryName = tolower(Name);
+        QueryName = trim_end(".", tolower(Name));
 
 // 3. Temporal inner join on apex domain match and temporal proximity
 DCQueryLogs
-| join kind=inner (GatewaySinkholes) on $left.QueryName has $right.ApexDomain
-| where abs(datetime_diff('second', DCTime, GatewayTime)) <= datetime_diff('second', now(), now() + time_tolerance)
+| join kind=inner (GatewaySinkholes) on JoinKey
+| where QueryName endswith strcat(".", ApexDomain) or QueryName == ApexDomain
+| where abs(datetime_diff('second', DCTime, GatewayTime)) <= (time_tolerance / 1s)
 | summarize 
     FirstSeen = min(DCTime),
     LastSeen = max(DCTime),
@@ -161,7 +165,7 @@ When executed against the captured telemetry, the correlation engine outputs the
 | **FirstSeen** | `2026-10-28 22:55:19 UTC` | Initial packet receipt timestamp |
 | **LastSeen** | `2026-10-28 22:55:53 UTC` | Final query in correlation burst |
 | **WorkstationIP** | **`192.168.20.50`** | **Patient-Zero Endpoint (`WRKSTN-01`)** |
-| **QuarantinedApex** | `exfil-test.internal` | Domain apex contained at Unbound resolver |
+| **ApexDomain** | `exfil-test.internal` | Domain apex contained at Unbound resolver |
 | **Probability** | `0.88` | Arbiter confidence score |
 | **MaxEntropy** | `4.625` | Label Shannon entropy ($H \ge 3.8$) |
 | **TotalQueries** | `3` | Query count within correlation window |
@@ -220,7 +224,7 @@ Containment is partitioned into two distinct operational phases to eliminate sel
   * **Action:** `Block`
   * **Direction:** `in`
   * **Quick:** `Checked` (Immediate rule evaluation termination)
-  * **Interface:** `LAN`, `OPT` (All client ingress interfaces)
+  * **Interface:** `LAN`, `OPT2` (All client ingress interfaces; excludes `OPT1` Management)
   * **Source:** `Quarantined_Hosts`
   * **Destination:** `any`
 
